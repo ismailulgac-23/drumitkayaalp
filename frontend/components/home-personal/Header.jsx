@@ -58,8 +58,17 @@ function Header() {
 
     return () => {
       ScrollTrigger.getAll().forEach((trigger) => {
-        if (trigger.vars.trigger?.closest('.header-personal')) {
-          trigger.kill();
+        try {
+          const triggerElement = trigger.vars?.trigger;
+          // Check if trigger is a DOM element and has closest method
+          if (triggerElement && typeof triggerElement.closest === 'function') {
+            if (triggerElement.closest('.header-personal')) {
+              trigger.kill();
+            }
+          }
+        } catch (error) {
+          // Silently handle errors during cleanup (element might be removed)
+          console.warn('Error cleaning up ScrollTrigger:', error);
         }
       });
     };
