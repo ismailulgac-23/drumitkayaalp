@@ -1,0 +1,40 @@
+# API - Node.js (.gitignore)
+api/node_modules/
+api/.env
+api/.env.*
+api/dist/
+api/.DS_Store
+api/npm-debug.log*
+api/yarn-debug.log*
+api/yarn-error.log*
+api/.npmrc
+api/.eslintcache
+
+# Admin - Next.js (.gitignore)
+admin/node_modules/
+admin/.next/
+admin/.env
+admin/.env.*
+admin/.DS_Store
+admin/npm-debug.log*
+admin/yarn-debug.log*
+admin/yarn-error.log*
+admin/.npmrc
+admin/.eslintcache
+admin/out/
+admin/.vercel/
+
+# Frontend - Next.js (.gitignore)
+frontend/node_modules/
+frontend/.next/
+frontend/.env
+frontend/.env.*
+frontend/.DS_Store
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.npmrc
+frontend/.eslintcache
+frontend/out/
+frontend/.vercel/
+

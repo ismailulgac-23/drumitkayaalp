@@ -1,0 +1,26 @@
+[
+  {
+    "title": "Genel Muayene",
+    "img": "/assets/imgs/serv-icons/3.png",
+    "desc": "Kapsamlı genel sağlık kontrolü ve muayene hizmetleri. Uzman doktorlarımız tarafından detaylı değerlendirme.",
+    "link": "/hizmetler"
+  },
+  {
+    "title": "Özel Tedaviler",
+    "img": "/assets/imgs/serv-icons/4.png",
+    "desc": "Özel tedavi programları ve kişiselleştirilmiş bakım hizmetleri. Modern tıbbi yöntemlerle en iyi sonuçlar.",
+    "link": "/hizmetler"
+  },
+  {
+    "title": "Konsültasyon",
+    "img": "/assets/imgs/serv-icons/5.png",
+    "desc": "Uzman doktor konsültasyonları ve ikinci görüş hizmetleri. Sağlık sorularınız için profesyonel danışmanlık.",
+    "link": "/hizmetler"
+  },
+  {
+    "title": "Acil Hizmetler",
+    "img": "/assets/imgs/serv-icons/5.png",
+    "desc": "7/24 acil sağlık hizmetleri. Acil durumlarda hızlı ve etkili müdahale ile yanınızdayız.",
+    "link": "/hizmetler"
+  }
+]

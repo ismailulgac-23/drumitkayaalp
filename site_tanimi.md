@@ -1,0 +1,3 @@
+Site görünümü: Anasayfa, hakkımızda, hizmetler, hasta bilgilendirme, iletişim, randevu alma ekranı olucak, kayan whatsapp icon, son derece modern bir arayüz. Sıkça sorulan sorular, öncesi ve sonraları, memnuniyet yorumları vs.
+
+Admin panelde de manuel hasta girişi olucak, hasta detay ekranı olucak yaptırdığı işlemler, randevular vsvs, randevu yönetim bölümü olucak, dashboardda örnek 30 günlük kaç hasta girişi oldu, ciro, işlemler gibi görüntülenmeşer olcak ve admin panelden sitenin tam kontrolü yapılabilecek sayfalar anasayfa vs
