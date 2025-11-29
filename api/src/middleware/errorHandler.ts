@@ -7,8 +7,11 @@ export interface ApiError extends Error {
 
 export const errorHandler = (
   err: ApiError,
+  // @ts-ignore
   req: Request,
+  // @ts-ignore
   res: Response,
+  // @ts-ignore
   next: NextFunction
 ) => {
   const statusCode = err.statusCode || 500;

@@ -1,5 +1,5 @@
 import { Router, Response, NextFunction } from 'express';
-import { body, query } from 'express-validator';
+import { body } from 'express-validator';
 import prisma from '../lib/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { AuthRequest, authenticate, authorizeAdmin } from '../middleware/auth';
@@ -15,6 +15,7 @@ router.post(
     body('name').optional().isString(),
   ],
   validateRequest,
+  // @ts-ignore
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const { email, name } = req.body;
@@ -77,7 +78,8 @@ router.post(
     body('email').isEmail().withMessage('Geçerli bir email adresi giriniz'),
   ],
   validateRequest,
-  async (req: AuthRequest, res: Response, next: NextFunction) => {
+  //@ts-ignore
+  async (req: any, res: Response, next: NextFunction) => {
     try {
       const { email } = req.body;
 

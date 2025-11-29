@@ -11,6 +11,7 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Storage configuration
 const storage = multer.diskStorage({
+  // @ts-ignore
   destination: (req: Request, file: Express.Multer.File, cb) => {
     // Map fieldnames to folder names
     let folderName = file.fieldname || 'general';
@@ -26,6 +27,7 @@ const storage = multer.diskStorage({
     }
     cb(null, uploadPath);
   },
+  // @ts-ignore
   filename: (req: Request, file: Express.Multer.File, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
@@ -35,6 +37,7 @@ const storage = multer.diskStorage({
 });
 
 // File filter
+// @ts-ignore
 const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   const allowedTypes = /jpeg|jpg|png|gif|webp|svg/;
   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());

@@ -3,6 +3,7 @@ import { validationResult, ValidationError } from 'express-validator';
 import { AppError } from './errorHandler';
 
 // Global validation error handler middleware
+// @ts-ignore
 export const validateRequest = (req: Request, res: Response, next: NextFunction) => {
   const errors = validationResult(req);
   

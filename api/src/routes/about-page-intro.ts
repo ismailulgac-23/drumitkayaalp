@@ -1,5 +1,4 @@
 import { Router, Response, NextFunction } from 'express';
-import { body } from 'express-validator';
 import prisma from '../lib/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { AuthRequest, authenticate, authorizeAdmin } from '../middleware/auth';
@@ -11,7 +10,8 @@ const router = Router();
 // Get about page intro (Public)
 router.get(
   '/',
-  async (req: AuthRequest, res: Response, next: NextFunction) => {
+  // @ts-ignore
+  async (_req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const intro = await prisma.aboutPageIntro.findFirst({
         where: { isActive: true },
@@ -33,6 +33,7 @@ router.get(
   '/all',
   authenticate,
   authorizeAdmin,
+  // @ts-ignore
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const intros = await prisma.aboutPageIntro.findMany({

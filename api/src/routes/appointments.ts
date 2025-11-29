@@ -1,5 +1,5 @@
 import { Router, Response, NextFunction } from 'express';
-import { body, query } from 'express-validator';
+import { body } from 'express-validator';
 import prisma from '../lib/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { AuthRequest, authenticate, authorizeAdmin } from '../middleware/auth';

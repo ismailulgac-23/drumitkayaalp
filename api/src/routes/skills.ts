@@ -10,7 +10,7 @@ const router = Router();
 // Get all skills (Public)
 router.get(
   '/',
-  async (req: AuthRequest, res: Response, next: NextFunction) => {
+  async (_req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const skills = await prisma.skill.findMany({
         where: { isActive: true },

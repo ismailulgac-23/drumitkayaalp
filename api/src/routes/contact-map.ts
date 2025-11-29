@@ -10,6 +10,7 @@ const router = Router();
 // Get contact map (Public)
 router.get(
   '/',
+  // @ts-ignore
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const map = await prisma.contactMap.findFirst({
@@ -32,6 +33,7 @@ router.get(
   '/all',
   authenticate,
   authorizeAdmin,
+  // @ts-ignore
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const maps = await prisma.contactMap.findMany({

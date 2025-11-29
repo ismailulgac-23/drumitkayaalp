@@ -10,6 +10,7 @@ const router = Router();
 // Get all marquee items (Public)
 router.get(
   '/',
+  // @ts-ignore
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const items = await prisma.marqueeItem.findMany({

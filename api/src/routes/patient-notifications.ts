@@ -40,7 +40,7 @@ router.post(
 
       // SMS gönderme işlemi (şu an aktif değil, sadece başarılı mesaj döndürüyor)
       // TODO: SMS servisi aktif edildiğinde bu kısım açılacak
-      const smsResult = await sendPatientNotification(patient.phone, fullMessage);
+      await sendPatientNotification(patient.phone, fullMessage);
       // Her halükarda başarılı döndürüyor, bu yüzden hata kontrolü yapmıyoruz
 
       // Log notification (ileride notification tablosu oluşturulabilir)
@@ -81,7 +81,7 @@ router.get(
   authorizeAdmin,
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      const { patientId, page = '1', limit = '50' } = req.query;
+      const { page = '1', limit = '50' } = req.query;
 
       // TODO: Notification tablosu oluşturulduğunda bu kısım güncellenecek
       // Şu an için boş array döndürüyoruz

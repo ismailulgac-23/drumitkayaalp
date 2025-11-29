@@ -1,6 +1,5 @@
 import { Router, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma';
-import { AppError } from '../middleware/errorHandler';
 import { AuthRequest, authenticate, authorizeAdmin } from '../middleware/auth';
 
 const router = Router();
@@ -10,6 +9,7 @@ router.get(
   '/statistics',
   authenticate,
   authorizeAdmin,
+  // @ts-ignore
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const now = new Date();

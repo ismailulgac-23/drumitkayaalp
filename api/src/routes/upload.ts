@@ -2,7 +2,6 @@ import { Router, Response, NextFunction } from 'express';
 import { AuthRequest, authenticate, authorizeAdmin } from '../middleware/auth';
 import { uploadSingle, uploadMultiple, uploadFields } from '../middleware/upload';
 import { AppError } from '../middleware/errorHandler';
-import path from 'path';
 
 const router = Router();
 

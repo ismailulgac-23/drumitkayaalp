@@ -10,7 +10,8 @@ const router = Router();
 // Get all contact channels (Public - for frontend)
 router.get(
   '/',
-  async (req: AuthRequest, res: Response, next: NextFunction) => {
+  // @ts-ignore
+  async (_req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const channels = await prisma.contactChannel.findMany({
         where: { isActive: true },
@@ -32,6 +33,7 @@ router.get(
   '/admin',
   authenticate,
   authorizeAdmin,
+  // @ts-ignore
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const channels = await prisma.contactChannel.findMany({

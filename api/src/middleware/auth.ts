@@ -9,7 +9,9 @@ export interface AuthRequest extends Request {
 
 export const authenticate = async (
   req: AuthRequest,
+  // @ts-ignore
   res: Response,
+  // @ts-ignore
   next: NextFunction
 ) => {
   try {
@@ -60,7 +62,7 @@ export const authenticate = async (
           select: { userType: true },
         });
         if (user) {
-          req.userType = user.userType;
+          req.userType = user.userType || '';
           console.log('✅ userType fetched from database:', req.userType);
         }
       }
@@ -85,7 +87,9 @@ export const authenticate = async (
 
 export const authorizeProvider = (
   req: AuthRequest,
+  // @ts-ignore
   res: Response,
+  // @ts-ignore
   next: NextFunction
 ) => {
   console.log('🔒 Authorize Provider check:', {
@@ -113,7 +117,9 @@ export const authorizeProvider = (
 
 export const authorizeReceiver = (
   req: AuthRequest,
+  // @ts-ignore
   res: Response,
+  // @ts-ignore
   next: NextFunction
 ) => {
   // Case-insensitive kontrol
@@ -126,6 +132,7 @@ export const authorizeReceiver = (
 // Admin authorization middleware
 export const authorizeAdmin = async (
   req: AuthRequest,
+  // @ts-ignore
   res: Response,
   next: NextFunction
 ) => {
