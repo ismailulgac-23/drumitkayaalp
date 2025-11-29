@@ -15,7 +15,7 @@ services:
       - doctor_network
 
   adminer:
-    image: adminer:latest
+    image: adminer:4.8.1
     container_name: doctor_adminer
     restart: unless-stopped
     ports:
