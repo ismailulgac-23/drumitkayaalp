@@ -83,7 +83,7 @@ export default function Doctors() {
         <div>
             <PageBreadcrumb pageTitle="Doktorlar Yönetimi" />
             <div className="space-y-6">
-                <ComponentCard 
+                <ComponentCard
                     title="Doktorlar"
                     titleRightRenderer={
                         <Link href="/doctors/create">
@@ -109,72 +109,72 @@ export default function Doctors() {
                         renderItem={(doctor) => {
                             const index = filteredDoctors.findIndex(d => d.id === doctor.id);
                             return (
-                            <TableRow key={doctor.id}>
-                                <TableCell className="px-5 py-4 sm:px-6 text-start">
-                                    {index + 1}
-                                </TableCell>
-                                <TableCell className="px-5 py-4 sm:px-6 text-start">
-                                    {doctor.image ? (
-                                        <img
-                                            src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}${doctor.image}`}
-                                            alt={doctor.name}
-                                            className="w-12 h-12 rounded-full object-cover"
-                                            onError={(e) => { e.target.src = '/placeholder.webp'; }}
-                                        />
-                                    ) : (
-                                        <span className="text-gray-400">-</span>
-                                    )}
-                                </TableCell>
-                                <TableCell className="px-5 py-4 sm:px-6 text-start font-medium">
-                                    {doctor.name}
-                                </TableCell>
-                                <TableCell className="px-5 py-4 sm:px-6 text-start">
-                                    {doctor.email || '-'}
-                                </TableCell>
-                                <TableCell className="px-5 py-4 sm:px-6 text-start">
-                                    {doctor.phone || '-'}
-                                </TableCell>
-                                <TableCell className="px-5 py-4 sm:px-6 text-start">
-                                    {doctor.specialty || '-'}
-                                </TableCell>
-                                <TableCell className="px-5 py-4 sm:px-6 text-start">
-                                    {doctor.isActive ? (
-                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
-                                            Aktif
-                                        </span>
-                                    ) : (
-                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400">
-                                            Pasif
-                                        </span>
-                                    )}
-                                </TableCell>
-                                <TableCell className="px-5 py-4 sm:px-6 text-start flex gap-2">
-                                    <Link href={`/doctors/edit/${doctor.id}`}>
-                                        <Button size="sm" variant="outline" className="flex items-center justify-center">
-                                            <Icon icon="ri:edit-line" className="text-base" />
+                                <TableRow key={doctor.id}>
+                                    <TableCell className="px-5 py-4 sm:px-6 text-start">
+                                        {index + 1}
+                                    </TableCell>
+                                    <TableCell className="px-5 py-4 sm:px-6 text-start">
+                                        {doctor.image ? (
+                                            <img
+                                                src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}${doctor.image}`}
+                                                alt={doctor.name}
+                                                className="w-12 h-12 rounded-full object-cover"
+                                                onError={(e) => { e.target.src = '/placeholder.webp'; }}
+                                            />
+                                        ) : (
+                                            <span className="text-gray-400">-</span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell className="px-5 py-4 sm:px-6 text-start font-medium">
+                                        {doctor.name}
+                                    </TableCell>
+                                    <TableCell className="px-5 py-4 sm:px-6 text-start">
+                                        {doctor.email || '-'}
+                                    </TableCell>
+                                    <TableCell className="px-5 py-4 sm:px-6 text-start">
+                                        {doctor.phone || '-'}
+                                    </TableCell>
+                                    <TableCell className="px-5 py-4 sm:px-6 text-start">
+                                        {doctor.specialty || '-'}
+                                    </TableCell>
+                                    <TableCell className="px-5 py-4 sm:px-6 text-start">
+                                        {doctor.isActive ? (
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                                                Aktif
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400">
+                                                Pasif
+                                            </span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell className="px-5 py-4 sm:px-6 text-start flex gap-2">
+                                        <Link href={`/doctors/edit/${doctor.id}`}>
+                                            <Button size="sm" variant="outline" className="flex items-center justify-center">
+                                                <Icon icon="ri:edit-line" className="text-base" />
+                                            </Button>
+                                        </Link>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="flex items-center justify-center"
+                                            onClick={() => toggleActive(doctor.id, doctor.isActive)}
+                                        >
+                                            <Icon
+                                                icon={doctor.isActive ? "ri:eye-off-line" : "ri:eye-line"}
+                                                className="text-base"
+                                            />
                                         </Button>
-                                    </Link>
-                                    <Button 
-                                        size="sm" 
-                                        variant="outline"
-                                        className="flex items-center justify-center"
-                                        onClick={() => toggleActive(doctor.id, doctor.isActive)}
-                                    >
-                                        <Icon 
-                                            icon={doctor.isActive ? "ri:eye-off-line" : "ri:eye-line"} 
-                                            className="text-base" 
-                                        />
-                                    </Button>
-                                    <Button 
-                                        size="sm" 
-                                        variant="danger" 
-                                        className="flex items-center justify-center"
-                                        onClick={() => handleDelete(doctor.id)}
-                                    >
-                                        <Icon icon="ri:delete-bin-line" className="text-base" />
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
+                                        <Button
+                                            size="sm"
+                                            variant="danger"
+                                            className="flex items-center justify-center"
+                                            onClick={() => handleDelete(doctor.id)}
+                                        >
+                                            <Icon icon="ri:delete-bin-line" className="text-base" />
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
                             );
                         }}
                         emptyMessage={filters.search ? 'Arama sonucu bulunamadı' : 'Henüz doktor eklenmemiş'}
