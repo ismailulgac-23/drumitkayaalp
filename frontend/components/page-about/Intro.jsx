@@ -1,12 +1,33 @@
 'use client';
-import React, { useEffect, useLayoutEffect } from 'react';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { getImageUrl } from '@/common/imageHelper';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 function Intro() {
+  const [intro, setIntro] = useState(null);
+
+  useEffect(() => {
+    fetchIntro();
+  }, []);
+
+  const fetchIntro = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/about-page-intro`);
+      const data = await response.json();
+      if (data.success && data.data) {
+        setIntro(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching about page intro:', error);
+    }
+  };
+
   useLayoutEffect(() => {
-    if (typeof window === 'undefined') return;
-    
+    if (typeof window === 'undefined' || !intro) return;
+
     gsap.registerPlugin(ScrollTrigger);
 
     const tl = gsap.timeline({
@@ -48,7 +69,14 @@ function Intro() {
         }
       });
     };
-  }, []);
+  }, [intro]);
+
+  if (!intro) {
+    return null;
+  }
+
+  const imageUrl = getImageUrl(intro.image) || '/assets/imgs/intro/i1.jpg';
+  const contentParts = intro.content ? intro.content.split('\n\n') : [];
 
   return (
     <section className="page-intro section-padding pb-0">
@@ -56,38 +84,21 @@ function Intro() {
         <div className="row md-marg">
           <div className="col-lg-6">
             <div className="img md-mb80">
-              <div className="row">
-                <div className="col-6">
-                  <img src="/assets/imgs/intro/i1.jpg" alt="Klinik" />
-                  <div className="img-icon">
-                    <img src="/assets/imgs/arw0.png" alt="" />
-                  </div>
-                </div>
-                <div className="col-6 mt-40">
-                  <img src="/assets/imgs/intro/i2.jpg" alt="Klinik" />
-                </div>
-              </div>
+              <img src={imageUrl} alt="Klinik" style={{ width: 500, borderRadius: 16, height: 500, objectFit: 'cover' }} />
             </div>
           </div>
           <div className="col-lg-6 valign">
             <div className="cont">
-              <h3 className="mb-30">
-                Modern tıbbi teknoloji ve{' '}
-                <span className="fw-200">deneyimli ekibimizle</span> sağlığınız
-                için <span className="fw-200">yanınızdayız</span>.
-              </h3>
-              <p>
-                Klinik olarak, hasta memnuniyetini ön planda tutarak, modern tıbbi 
-                teknoloji ve deneyimli ekibimizle en kaliteli sağlık hizmetini sunmaktayız. 
-                Yılların deneyimi ve sürekli gelişen tıp bilimi ile hastalarımıza 
-                en iyi tedavi seçeneklerini sunuyoruz.
-              </p>
-              <p className="mt-20">
-                Misyonumuz, her hasta için kişiselleştirilmiş tedavi planları oluşturmak 
-                ve sağlık yolculuğunuzda yanınızda olmaktır. Vizyonumuz ise, 
-                toplum sağlığını iyileştirmek ve herkes için erişilebilir, kaliteli 
-                sağlık hizmeti sunmaktır.
-              </p>
+              {intro.title && (
+                <h3 className="mb-30">
+                  {intro.title}
+                </h3>
+              )}
+              {contentParts.map((part, index) => (
+                <p key={index} className={index > 0 ? 'mt-20' : ''}>
+                  {part}
+                </p>
+              ))}
               <a href="/hizmetler" className="underline main-color mt-40">
                 <span className="text">
                   Hizmetlerimiz <i className="ti-arrow-top-right"></i>

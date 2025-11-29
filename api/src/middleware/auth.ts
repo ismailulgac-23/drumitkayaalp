@@ -123,3 +123,30 @@ export const authorizeReceiver = (
   next();
 };
 
+// Admin authorization middleware
+export const authorizeAdmin = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.userId) {
+      return next(new AppError('Authentication required', 401));
+    }
+
+    const prisma = (await import('../lib/prisma')).default;
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: { isAdmin: true },
+    });
+
+    if (!user || !user.isAdmin) {
+      return next(new AppError('Access denied. Admin role required.', 403));
+    }
+
+    next();
+  } catch (error) {
+    next(new AppError('Authorization failed', 403));
+  }
+};
+

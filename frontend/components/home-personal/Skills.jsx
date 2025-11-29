@@ -1,11 +1,31 @@
 'use client';
-import React, { useEffect, useLayoutEffect } from 'react';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
 function Skills() {
+  const [skills, setSkills] = useState([]);
+
+  useEffect(() => {
+    fetchSkills();
+  }, []);
+
+  const fetchSkills = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/skills`);
+      const data = await response.json();
+      if (data.success && data.data) {
+        setSkills(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching skills:', error);
+    }
+  };
+
   useLayoutEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || skills.length === 0) return;
     
     gsap.registerPlugin(ScrollTrigger);
 
@@ -55,7 +75,11 @@ function Skills() {
         }
       });
     };
-  }, []);
+  }, [skills]);
+
+  if (skills.length === 0) {
+    return null;
+  }
 
   return (
     <section className="my-skills section-padding">
@@ -71,72 +95,16 @@ function Skills() {
           </div>
         </div>
         <div className="row md-marg">
-          <div className="col-lg-2 col-md-4 col-6">
-            <div className="item mb-30">
-              <div className="box-bord">
-                <div className="img">
-                  <img src="/assets/imgs/resume/s1.png" alt="" />
+          {skills.map((skill) => (
+            <div key={skill.id} className="col-lg-2 col-md-4 col-6">
+              <div className="item mb-30">
+                <div className="box-bord">
+                  <span className="value">{skill.percentage}%</span>
                 </div>
-                <span className="value">98%</span>
+                <h6 className="fz-18">{skill.title}</h6>
               </div>
-              <h6 className="fz-18">Genel Muayene</h6>
             </div>
-          </div>
-          <div className="col-lg-2 col-md-4 col-6">
-            <div className="item mb-30">
-              <div className="box-bord">
-                <div className="img">
-                  <img src="/assets/imgs/resume/s2.png" alt="" />
-                </div>
-                <span className="value">95%</span>
-              </div>
-              <h6 className="fz-18">Özel Tedaviler</h6>
-            </div>
-          </div>
-          <div className="col-lg-2 col-md-4 col-6">
-            <div className="item mb-30">
-              <div className="box-bord">
-                <div className="img">
-                  <img src="/assets/imgs/resume/s3.png" alt="" />
-                </div>
-                <span className="value">97%</span>
-              </div>
-              <h6 className="fz-18">Teşhis Hizmetleri</h6>
-            </div>
-          </div>
-          <div className="col-lg-2 col-md-4 col-6">
-            <div className="item mb-30">
-              <div className="box-bord">
-                <div className="img">
-                  <img src="/assets/imgs/resume/s5.png" alt="" />
-                </div>
-                <span className="value">96%</span>
-              </div>
-              <h6 className="fz-18">Konsültasyon</h6>
-            </div>
-          </div>
-          <div className="col-lg-2 col-md-4 col-6">
-            <div className="item mb-30">
-              <div className="box-bord">
-                <div className="img">
-                  <img src="/assets/imgs/resume/s4.png" alt="" />
-                </div>
-                <span className="value">94%</span>
-              </div>
-              <h6 className="fz-18">Acil Hizmetler</h6>
-            </div>
-          </div>
-          <div className="col-lg-2 col-md-4 col-6">
-            <div className="item mb-30">
-              <div className="box-bord">
-                <div className="img">
-                  <img src="/assets/imgs/resume/s6.png" alt="" />
-                </div>
-                <span className="value">99%</span>
-              </div>
-              <h6 className="fz-18">Hasta Memnuniyeti</h6>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </section>

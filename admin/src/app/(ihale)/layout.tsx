@@ -4,6 +4,7 @@ import { useSidebar } from "@/context/SidebarContext";
 import AppHeader from "@/layout/AppHeader";
 import AppSidebar from "@/layout/AppSidebar";
 import Backdrop from "@/layout/Backdrop";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { usePathname } from "next/navigation";
 import React from "react";
 
@@ -22,20 +23,27 @@ export default function AdminLayout({
     ? "lg:ml-[290px]"
     : "lg:ml-[90px]";
 
+  // Don't show sidebar/header on signin page
+  if (pathname === '/signin') {
+    return <ProtectedRoute>{children}</ProtectedRoute>;
+  }
+
   return (
-    <div className="min-h-screen xl:flex">
-      {/* Sidebar and Backdrop */}
-      <AppSidebar />
-      <Backdrop />
-      {/* Main Content Area */}
-      <div
-        className={`flex-1 transition-all  duration-300 ease-in-out ${mainContentMargin}`}
-      >
-        {/* Header */}
-        <AppHeader />
-        {/* Page Content */}
-        <div className={`mx-auto max-w-(--breakpoint-2xl) ${pathname == '/chat' ? 'p-0 md:p-0' : 'p-4 md:p-6'}`}>{children}</div>
+    <ProtectedRoute>
+      <div className="min-h-screen xl:flex">
+        {/* Sidebar and Backdrop */}
+        <AppSidebar />
+        <Backdrop />
+        {/* Main Content Area */}
+        <div
+          className={`flex-1 transition-all  duration-300 ease-in-out ${mainContentMargin}`}
+        >
+          {/* Header */}
+          <AppHeader />
+          {/* Page Content */}
+          <div className={`mx-auto max-w-(--breakpoint-2xl) ${pathname == '/chat' ? 'p-0 md:p-0' : 'p-4 md:p-6'}`}>{children}</div>
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }

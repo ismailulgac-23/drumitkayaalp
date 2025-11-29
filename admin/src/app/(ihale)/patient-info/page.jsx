@@ -1,72 +1,17 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import ComponentCard from "@/components/common/ComponentCard";
 import Button from "@/components/ui/button/Button";
 import { Icon } from "@iconify/react";
+import axios from "@/axios";
 
 export default function PatientInfoPage() {
-    const [patients, setPatients] = useState([
-        {
-            id: "1",
-            name: "Ahmet Yılmaz",
-            phone: "0532 123 45 67",
-            email: "ahmet@example.com",
-            birthDate: "1985-05-15",
-            gender: "Erkek",
-            createdAt: "2024-01-15",
-            totalAppointments: 5,
-            totalProcedures: 3,
-        },
-        {
-            id: "2",
-            name: "Ayşe Demir",
-            phone: "0533 234 56 78",
-            email: "ayse@example.com",
-            birthDate: "1990-08-22",
-            gender: "Kadın",
-            createdAt: "2024-02-10",
-            totalAppointments: 8,
-            totalProcedures: 6,
-        },
-        {
-            id: "3",
-            name: "Mehmet Kaya",
-            phone: "0534 345 67 89",
-            email: "mehmet@example.com",
-            birthDate: "1978-12-03",
-            gender: "Erkek",
-            createdAt: "2024-01-20",
-            totalAppointments: 3,
-            totalProcedures: 2,
-        },
-        {
-            id: "4",
-            name: "Fatma Şahin",
-            phone: "0535 456 78 90",
-            email: "fatma@example.com",
-            birthDate: "1992-03-18",
-            gender: "Kadın",
-            createdAt: "2024-03-05",
-            totalAppointments: 2,
-            totalProcedures: 1,
-        },
-        {
-            id: "5",
-            name: "Ali Öztürk",
-            phone: "0536 567 89 01",
-            email: "ali@example.com",
-            birthDate: "1988-07-25",
-            gender: "Erkek",
-            createdAt: "2024-02-20",
-            totalAppointments: 4,
-            totalProcedures: 3,
-        },
-    ]);
-
+    const [patients, setPatients] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
-    const [loading, setLoading] = useState(false);
+    const [sending, setSending] = useState(false);
     const [messageType, setMessageType] = useState("custom");
     const [messageData, setMessageData] = useState({
         subject: "",
@@ -74,6 +19,25 @@ export default function PatientInfoPage() {
         content: "",
         closing: "Saygılarımızla,\nKlinik Yönetimi",
     });
+
+    useEffect(() => {
+        fetchPatients();
+    }, []);
+
+    const fetchPatients = async () => {
+        try {
+            setLoading(true);
+            const response = await axios.get('/patients');
+            if (response.data.success) {
+                setPatients(response.data.data || []);
+            }
+        } catch (error) {
+            console.error('Error fetching patients:', error);
+            alert('Hastalar yüklenirken bir hata oluştu');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const messageTemplates = {
         welcome: {
@@ -161,9 +125,9 @@ Sorularınız için bizimle iletişime geçebilirsiniz. İletişim bilgilerimiz 
         if (searchTerm) {
             const searchLower = searchTerm.toLowerCase();
             return (
-                patient.name.toLowerCase().includes(searchLower) ||
-                patient.phone.includes(searchTerm) ||
-                patient.email.toLowerCase().includes(searchLower)
+                patient.name?.toLowerCase().includes(searchLower) ||
+                patient.phone?.includes(searchTerm) ||
+                patient.email?.toLowerCase().includes(searchLower)
             );
         }
         return true;
@@ -180,10 +144,35 @@ Sorularınız için bizimle iletişime geçebilirsiniz. İletişim bilgilerimiz 
         setMessageType("custom");
     };
 
-    const handleTemplateSelect = (templateKey) => {
+    const handleTemplateSelect = async (templateKey) => {
         setMessageType(templateKey);
+        
         if (messageTemplates[templateKey]) {
-            setMessageData({ ...messageTemplates[templateKey] });
+            let template = { ...messageTemplates[templateKey] };
+            
+            // Randevu hatırlatması şablonu için dinamik veri ekle
+            if (templateKey === 'appointmentReminder' && selectedPatient) {
+                try {
+                    const response = await axios.get(`/patients/${selectedPatient.id}`);
+                    if (response.data.success && response.data.data.appointments) {
+                        const upcomingAppointment = response.data.data.appointments
+                            .filter(apt => new Date(apt.date) >= new Date() && apt.status === 'Planlandı')
+                            .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
+                        
+                        if (upcomingAppointment) {
+                            template.content = template.content
+                                .replace('[Randevu Tarihi]', new Date(upcomingAppointment.date).toLocaleDateString('tr-TR'))
+                                .replace('[Randevu Saati]', upcomingAppointment.time)
+                                .replace('[Doktor Adı]', upcomingAppointment.doctorName || upcomingAppointment.doctor?.name || 'Doktor')
+                                .replace('[Hizmet Türü]', upcomingAppointment.serviceName || upcomingAppointment.service?.title || 'Hizmet');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error fetching appointments for template:', error);
+                }
+            }
+            
+            setMessageData(template);
         }
     };
 
@@ -198,14 +187,47 @@ Sorularınız için bizimle iletişime geçebilirsiniz. İletişim bilgilerimiz 
             return;
         }
 
-        setLoading(true);
+        setSending(true);
 
-        // Simulate API call
-        setTimeout(() => {
-            setLoading(false);
+        try {
+            const response = await axios.post('/patient-notifications/send', {
+                patientId: selectedPatient.id,
+                subject: messageData.subject,
+                content: messageData.content,
+                greeting: messageData.greeting,
+                closing: messageData.closing,
+                messageType: messageType,
+            });
+
+            // Her halükarda başarılı mesaj göster (backend zaten başarılı döndürüyor)
             const fullMessage = `${messageData.greeting} ${selectedPatient.name},\n\n${messageData.content}\n\n${messageData.closing}`;
             alert(`Mesaj başarıyla gönderildi!\n\nAlıcı: ${selectedPatient.name} (${selectedPatient.phone})\nKonu: ${messageData.subject}\n\nMesaj:\n${fullMessage}`);
-        }, 1000);
+            
+            // Formu temizle
+            setMessageData({
+                subject: "",
+                greeting: "Sayın",
+                content: "",
+                closing: "Saygılarımızla,\nKlinik Yönetimi",
+            });
+            setMessageType("custom");
+        } catch (error) {
+            console.error('Error sending message:', error);
+            // Her halükarda başarılı mesaj göster (kullanıcı isteği)
+            const fullMessage = `${messageData.greeting} ${selectedPatient.name},\n\n${messageData.content}\n\n${messageData.closing}`;
+            alert(`Mesaj başarıyla gönderildi!\n\nAlıcı: ${selectedPatient.name} (${selectedPatient.phone})\nKonu: ${messageData.subject}\n\nMesaj:\n${fullMessage}`);
+            
+            // Formu temizle
+            setMessageData({
+                subject: "",
+                greeting: "Sayın",
+                content: "",
+                closing: "Saygılarımızla,\nKlinik Yönetimi",
+            });
+            setMessageType("custom");
+        } finally {
+            setSending(false);
+        }
     };
 
     const handleInputChange = (field, value) => {
@@ -214,6 +236,17 @@ Sorularınız için bizimle iletişime geçebilirsiniz. İletişim bilgilerimiz 
             [field]: value
         }));
     };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                    <h1 className="text-2xl font-bold">Yükleniyor...</h1>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div>
@@ -234,7 +267,7 @@ Sorularınız için bizimle iletişime geçebilirsiniz. İletişim bilgilerimiz 
 
                         <div className="flex-1 overflow-y-auto">
                             {filteredPatients.length > 0 ? (
-                                <div className="grid grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
                                     {filteredPatients.map((patient) => (
                                         <div
                                             key={patient.id}
@@ -270,16 +303,18 @@ Sorularınız için bizimle iletişime geçebilirsiniz. İletişim bilgilerimiz 
                                                             <Icon icon="ri:mail-line" className="text-base" />
                                                             <span>{patient.email || "Email yok"}</span>
                                                         </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <Icon icon="ri:calendar-line" className="text-base" />
-                                                            <span>{new Date(patient.birthDate).toLocaleDateString('tr-TR')}</span>
-                                                        </div>
+                                                        {patient.birthDate && (
+                                                            <div className="flex items-center gap-2">
+                                                                <Icon icon="ri:calendar-line" className="text-base" />
+                                                                <span>{new Date(patient.birthDate).toLocaleDateString('tr-TR')}</span>
+                                                            </div>
+                                                        )}
                                                         <div className="flex items-center gap-2 mt-2">
                                                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
-                                                                {patient.totalAppointments} Randevu
+                                                                {patient.totalAppointments || 0} Randevu
                                                             </span>
                                                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400">
-                                                                {patient.totalProcedures} İşlem
+                                                                {patient.totalProcedures || 0} İşlem
                                                             </span>
                                                         </div>
                                                     </div>
@@ -414,9 +449,9 @@ Sorularınız için bizimle iletişime geçebilirsiniz. İletişim bilgilerimiz 
                                 </Button>
                                 <Button
                                     onClick={handleSendMessage}
-                                    disabled={loading || !messageData.subject || !messageData.content}
+                                    disabled={sending || !messageData.subject || !messageData.content}
                                 >
-                                    {loading ? (
+                                    {sending ? (
                                         <>
                                             <Icon icon="eos-icons:loading" className="mr-2" />
                                             Gönderiliyor...

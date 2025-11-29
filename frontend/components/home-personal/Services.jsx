@@ -1,11 +1,37 @@
 'use client';
-import React, { useEffect, useLayoutEffect } from 'react';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import ServiceDetailModal from '@/components/common/ServiceDetailModal';
+import { getImageUrl } from '@/common/imageHelper';
 
 function Services() {
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedService, setSelectedService] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    fetchServices();
+  }, []);
+
+  const fetchServices = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/services`);
+      const data = await response.json();
+      if (data.success && data.data) {
+        // İlk 3 hizmeti al
+        setServices(data.data.slice(0, 3));
+      }
+    } catch (error) {
+      console.error('Error fetching services:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useLayoutEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || services.length === 0) return;
     
     gsap.registerPlugin(ScrollTrigger);
 
@@ -43,99 +69,104 @@ function Services() {
         }
       });
     };
-  }, []);
+  }, [services]);
+
+
+  const handleServiceClick = (service) => {
+    setSelectedService(service);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setTimeout(() => {
+      setSelectedService(null);
+    }, 300);
+  };
 
   return (
-    <section className="services-clas">
-      <div className="container section-padding bord-bottom-grd pt-0">
-        <div className="sec-head mb-80">
-          <div className="d-flex align-items-center">
-            <div>
-              <span className="sub-title main-color mb-5">Hizmetlerimiz</span>
-              <h3 className="fw-600 fz-50 text-u d-rotate wow">
-                <span className="rotate-text">
-                  Sağlık <span className="fw-200">Hizmetleri.</span>
-                </span>
-              </h3>
-            </div>
-            <div className="ml-auto vi-more">
-              <a
-                href="/hizmetler"
-                className="butn butn-sm butn-bord radius-30"
-              >
-                <span>Tümünü Gör</span>
-              </a>
-              <span className="icon ti-arrow-top-right"></span>
+    <>
+      <section className="services-clas">
+        <div className="container section-padding bord-bottom-grd pt-0">
+          <div className="sec-head mb-80">
+            <div className="d-flex align-items-center">
+              <div>
+                <span className="sub-title main-color mb-5">Hizmetlerimiz</span>
+                <h3 className="fw-600 fz-50 text-u d-rotate wow">
+                  <span className="rotate-text">
+                    Sağlık <span className="fw-200">Hizmetleri.</span>
+                  </span>
+                </h3>
+              </div>
+              <div className="ml-auto vi-more">
+                <a
+                  href="/hizmetler"
+                  className="butn butn-sm butn-bord radius-30"
+                >
+                  <span>Tümünü Gör</span>
+                </a>
+                <span className="icon ti-arrow-top-right"></span>
+              </div>
             </div>
           </div>
+          {loading ? (
+            <div className="text-center py-5">
+              <p>Yükleniyor...</p>
+            </div>
+          ) : services.length === 0 ? (
+            <div className="text-center py-5">
+              <p>Henüz hizmet bulunmamaktadır.</p>
+            </div>
+          ) : (
+            <div className="row">
+              {services.map((service, index) => (
+                <div key={service.id || index} className="col-lg-4">
+                  <div 
+                    className="item sub-bg md-mb30"
+                    onClick={() => handleServiceClick(service)}
+                    style={{ cursor: 'pointer', transition: 'transform 0.3s' }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-5px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    <div className="icon-img-60 opacity-5 mb-40 w-100">
+                      <img 
+                        src={getImageUrl(service.image) || '/placeholder.webp'} 
+                        alt={service.title}
+                        onError={(e) => {
+                          e.target.src = '/placeholder.webp';
+                        }}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    </div>
+                    <h5>{service.title}</h5>
+                    <div className="text mt-40">
+                      <div className="mb-10">
+                        <span className="tag">Hizmet</span>
+                      </div>
+                      <p>
+                        {service.description || 'Profesyonel sağlık hizmeti'}
+                      </p>
+                    </div>
+                    <div className="mt-40">
+                      <span className="ti-arrow-top-right"></span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-        <div className="row">
-          <div className="col-lg-4">
-            <div className="item sub-bg md-mb30">
-              <div className="icon-img-60 opacity-5 mb-40">
-                <img src="/assets/imgs/serv-icons/3.png" alt="" />
-              </div>
-              <h5>Genel Muayene</h5>
-              <div className="text mt-40">
-                <div className="mb-10">
-                  <span className="tag">Kontrol</span>
-                  <span className="tag">Muayene</span>
-                </div>
-                <p>
-                  Kapsamlı genel sağlık kontrolü ve muayene hizmetleri. 
-                  Uzman doktorlarımız tarafından detaylı değerlendirme.
-                </p>
-              </div>
-              <a href="/hizmetler" className="mt-40">
-                <span className="ti-arrow-top-right"></span>
-              </a>
-            </div>
-          </div>
-          <div className="col-lg-4">
-            <div className="item sub-bg md-mb30">
-              <div className="icon-img-60 opacity-5 mb-40">
-                <img src="/assets/imgs/serv-icons/4.png" alt="" />
-              </div>
-              <h5>Özel Tedaviler</h5>
-              <div className="text mt-40">
-                <div className="mb-10">
-                  <span className="tag">Tedavi</span>
-                  <span className="tag">Bakım</span>
-                </div>
-                <p>
-                  Özel tedavi programları ve kişiselleştirilmiş bakım hizmetleri. 
-                  Modern tıbbi yöntemlerle en iyi sonuçlar.
-                </p>
-              </div>
-              <a href="/hizmetler" className="mt-40">
-                <span className="ti-arrow-top-right"></span>
-              </a>
-            </div>
-          </div>
-          <div className="col-lg-4">
-            <div className="item sub-bg">
-              <div className="icon-img-60 opacity-5 mb-40">
-                <img src="/assets/imgs/serv-icons/5.png" alt="" />
-              </div>
-              <h5>Konsültasyon</h5>
-              <div className="text mt-40">
-                <div className="mb-10">
-                  <span className="tag">Danışmanlık</span>
-                  <span className="tag">Konsültasyon</span>
-                </div>
-                <p>
-                  Uzman doktor konsültasyonları ve ikinci görüş hizmetleri. 
-                  Sağlık sorularınız için profesyonel danışmanlık.
-                </p>
-              </div>
-              <a href="/hizmetler" className="mt-40">
-                <span className="ti-arrow-top-right"></span>
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
+      </section>
+      <ServiceDetailModal
+        service={selectedService}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+      />
+    </>
   );
 }
 

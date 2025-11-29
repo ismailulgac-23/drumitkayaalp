@@ -1,15 +1,47 @@
 'use client';
 import { Icon } from '@iconify/react';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 function WhatsAppButton() {
-  const whatsappNumber = '905321234567'; // WhatsApp numarası (ülke kodu ile, başında + olmadan)
-  const message = 'Merhaba, randevu almak istiyorum.';
+  const [whatsappNumber, setWhatsappNumber] = useState(null);
+  const [message, setMessage] = useState('Merhaba, randevu almak istiyorum.');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchWhatsAppInfo();
+  }, []);
+
+  const fetchWhatsAppInfo = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/contact-channels`);
+      const data = await response.json();
+      if (data.success) {
+        const whatsappChannel = data.data.find((ch) => ch.type === 'whatsapp' && ch.isActive);
+        if (whatsappChannel) {
+          // Telefon numarasını temizle (sadece rakamlar)
+          const cleanNumber = whatsappChannel.value.replace(/[^0-9]/g, '');
+          if (cleanNumber) {
+            setWhatsappNumber(cleanNumber);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching WhatsApp info:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleClick = () => {
+    if (!whatsappNumber) return;
     const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
   };
+
+  // WhatsApp bilgisi yüklenene kadar veya WhatsApp kanalı yoksa butonu gösterme
+  if (loading || !whatsappNumber) {
+    return null;
+  }
 
   return (
     <div

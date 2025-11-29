@@ -1,9 +1,75 @@
 'use client';
-import React, { useEffect, useLayoutEffect } from 'react';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { formatPhoneNumber, cleanPhoneForTelLink } from '@/common/phoneFormatter';
 
 function Contact() {
+  const [contactChannels, setContactChannels] = useState([]);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    subject: '',
+    message: '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    fetchContactChannels();
+  }, []);
+
+  const fetchContactChannels = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/contact-channels`);
+      const data = await response.json();
+      if (data.success) {
+        setContactChannels(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching contact channels:', error);
+    }
+  };
+
+  const getContactChannel = (type) => {
+    return contactChannels.find(ch => ch.type === type);
+  };
+
+  const phoneChannel = getContactChannel('phone');
+  const emailChannel = getContactChannel('email');
+  const addressChannel = getContactChannel('address');
+  const whatsappChannel = getContactChannel('whatsapp');
+  const workingHoursChannel = getContactChannel('working_hours');
+  const socialChannels = contactChannels.filter(ch => ch.type === 'social_media');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage('');
+
+    try {
+      // TODO: Contact form submission endpoint oluşturulacak
+      // Şimdilik sadece başarılı mesaj gösteriyoruz
+      setTimeout(() => {
+        setMessage('Mesajınız başarıyla gönderildi!');
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          subject: '',
+          message: '',
+        });
+        setLoading(false);
+        setTimeout(() => setMessage(''), 5000);
+      }, 1000);
+    } catch (error) {
+      console.error('Error submitting contact form:', error);
+      setMessage('Bir hata oluştu. Lütfen tekrar deneyin.');
+      setLoading(false);
+    }
+  };
+
   useLayoutEffect(() => {
     if (typeof window === 'undefined') return;
     
@@ -49,8 +115,15 @@ function Contact() {
 
     return () => {
       ScrollTrigger.getAll().forEach((trigger) => {
-        if (trigger.vars.trigger === document.querySelector('.contact')) {
-          trigger.kill();
+        try {
+          const triggerElement = trigger.vars?.trigger;
+          if (triggerElement && typeof triggerElement.closest === 'function') {
+            if (triggerElement.closest('.contact')) {
+              trigger.kill();
+            }
+          }
+        } catch (error) {
+          // Ignore errors
         }
       });
     };
@@ -62,37 +135,49 @@ function Contact() {
         <div className="row">
           <div className="col-lg-4 valign">
             <div className="sec-head info-box full-width md-mb80">
-              <div className="phone fz-30 fw-600 underline main-color">
-                <a href="tel:02161234567">0216 123 45 67</a>
-              </div>
-              <div className="morinfo mt-50 pb-30 bord-thin-bottom">
-                <h6 className="mb-15">Adres</h6>
-                <p>İstanbul, Kadıköy</p>
-              </div>
-              <div className="morinfo mt-30 pb-30 bord-thin-bottom">
-                <h6 className="mb-15">Email</h6>
-                <p>info@klinik.com</p>
-              </div>
+              {phoneChannel && (
+                <div className="phone fz-30 fw-600 underline main-color">
+                  <a href={`tel:${cleanPhoneForTelLink(phoneChannel.value)}`}>{formatPhoneNumber(phoneChannel.value)}</a>
+                </div>
+              )}
+              {addressChannel && (
+                <div className="morinfo mt-50 pb-30 bord-thin-bottom">
+                  <h6 className="mb-15">Adres</h6>
+                  <p>{addressChannel.value}</p>
+                </div>
+              )}
+              {emailChannel && (
+                <div className="morinfo mt-30 pb-30 bord-thin-bottom">
+                  <h6 className="mb-15">Email</h6>
+                  <p>{emailChannel.value}</p>
+                </div>
+              )}
+              {whatsappChannel && (
+                <div className="morinfo mt-30 pb-30 bord-thin-bottom">
+                  <h6 className="mb-15">WhatsApp</h6>
+                  <p>
+                    <a href={`https://wa.me/${whatsappChannel.value.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer">
+                      {formatPhoneNumber(whatsappChannel.value)}
+                    </a>
+                  </p>
+                </div>
+              )}
+              {workingHoursChannel && (
+                <div className="morinfo mt-30 pb-30 bord-thin-bottom">
+                  <h6 className="mb-15">Çalışma Saatleri</h6>
+                  <p dangerouslySetInnerHTML={{ __html: workingHoursChannel.value.replace(/\n/g, '<br />') }}></p>
+                </div>
+              )}
 
-              <div className="morinfo mt-30 pb-30 bord-thin-bottom">
-                <h6 className="mb-15">Çalışma Saatleri</h6>
-                <p>Pazartesi - Cuma: 09:00 - 18:00<br />Cumartesi: 09:00 - 14:00</p>
-              </div>
-
-              <div className="social-icon mt-50">
-                <a href="#0">
-                  <i className="fab fa-facebook-f"></i>
-                </a>
-                <a href="#0">
-                  <i className="fab fa-instagram"></i>
-                </a>
-                <a href="#0">
-                  <i className="fab fa-twitter"></i>
-                </a>
-                <a href="#0">
-                  <i className="fab fa-linkedin"></i>
-                </a>
-              </div>
+              {socialChannels.length > 0 && (
+                <div className="social-icon mt-50">
+                  {socialChannels.map((channel) => (
+                    <a key={channel.id} href={channel.value} target="_blank" rel="noopener noreferrer">
+                      <i className={channel.icon || 'fab fa-link'}></i>
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           <div className="col-lg-7 offset-lg-1 valign">
@@ -106,10 +191,15 @@ function Contact() {
               <form
                 id="contact-form"
                 className="form2"
-                method="post"
-                action="contact.php"
+                onSubmit={handleSubmit}
               >
-                <div className="messages"></div>
+                <div className="messages">
+                  {message && (
+                    <div className={`alert ${message.includes('başarıyla') ? 'alert-success' : 'alert-danger'}`}>
+                      {message}
+                    </div>
+                  )}
+                </div>
 
                 <div className="controls row">
                   <div className="col-lg-6">
@@ -119,7 +209,9 @@ function Contact() {
                         type="text"
                         name="name"
                         placeholder="Ad Soyad"
-                        required="required"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        required
                       />
                     </div>
                   </div>
@@ -131,7 +223,9 @@ function Contact() {
                         type="email"
                         name="email"
                         placeholder="Email"
-                        required="required"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        required
                       />
                     </div>
                   </div>
@@ -143,7 +237,9 @@ function Contact() {
                         type="tel"
                         name="phone"
                         placeholder="Telefon"
-                        required="required"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        required
                       />
                     </div>
                   </div>
@@ -155,6 +251,8 @@ function Contact() {
                         type="text"
                         name="subject"
                         placeholder="Konu"
+                        value={formData.subject}
+                        onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                       />
                     </div>
                   </div>
@@ -166,15 +264,18 @@ function Contact() {
                         name="message"
                         placeholder="Mesajınız"
                         rows="4"
-                        required="required"
+                        value={formData.message}
+                        onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                        required
                       ></textarea>
                     </div>
                     <div className="mt-30">
                       <button
                         type="submit"
                         className="butn butn-full butn-bord radius-30"
+                        disabled={loading}
                       >
-                        <span className="text">Gönder</span>
+                        <span className="text">{loading ? 'Gönderiliyor...' : 'Gönder'}</span>
                       </button>
                     </div>
                   </div>

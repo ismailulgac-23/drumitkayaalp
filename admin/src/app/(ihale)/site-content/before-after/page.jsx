@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import TableContainer from "@/components/royal-common/Table";
@@ -7,57 +7,76 @@ import Button from "@/components/ui/button/Button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import ComponentCard from "@/components/common/ComponentCard";
+import axios from "@/axios";
 
 export default function BeforeAfter() {
-    const [items, setItems] = useState([
-        {
-            id: "1",
-            title: "Diş Temizliği Öncesi - Sonrası",
-            beforeImage: "https://example.com/before1.jpg",
-            afterImage: "https://example.com/after1.jpg",
-            description: "Profesyonel diş temizliği sonuçları",
-            order: 1,
-            isActive: true,
-        },
-        {
-            id: "2",
-            title: "Dolgu İşlemi Öncesi - Sonrası",
-            beforeImage: "https://example.com/before2.jpg",
-            afterImage: "https://example.com/after2.jpg",
-            description: "Estetik dolgu sonuçları",
-            order: 2,
-            isActive: true,
-        },
-    ]);
+    const [items, setItems] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState({
         search: '',
     });
+
+    useEffect(() => {
+        fetchItems();
+    }, []);
+
+    const fetchItems = async () => {
+        try {
+            setLoading(true);
+            const response = await axios.get('/before-after');
+            if (response.data.success) {
+                setItems(response.data.data || []);
+            }
+        } catch (error) {
+            console.error('Error fetching before-after items:', error);
+            alert('Öncesi-Sonrası öğeleri yüklenirken bir hata oluştu');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleDelete = async (id) => {
         if (!window.confirm('Bu öğeyi silmek istediğinize emin misiniz?')) {
             return;
         }
-        setItems(prev => prev.filter(item => item.id !== id));
+        try {
+            await axios.delete(`/before-after/${id}`);
+            alert('Öğe başarıyla silindi');
+            fetchItems();
+        } catch (error) {
+            console.error('Error deleting before-after item:', error);
+            alert('Öğe silinirken bir hata oluştu');
+        }
     };
 
-    const toggleActive = (id, currentStatus) => {
-        setItems(prev => 
-            prev.map(item => 
-                item.id === id ? { ...item, isActive: !currentStatus } : item
-            )
-        );
+    const toggleActive = async (id, currentStatus) => {
+        try {
+            await axios.put(`/before-after/${id}`, { isActive: !currentStatus });
+            fetchItems();
+        } catch (error) {
+            console.error('Error toggling before-after item:', error);
+            alert('Öğe durumu güncellenirken bir hata oluştu');
+        }
     };
 
     const filteredItems = items.filter(item => {
         if (filters.search) {
             const searchLower = filters.search.toLowerCase();
             return (
-                item.title.toLowerCase().includes(searchLower) ||
-                item.description.toLowerCase().includes(searchLower)
+                item.title?.toLowerCase().includes(searchLower) ||
+                item.description?.toLowerCase().includes(searchLower)
             );
         }
         return true;
     });
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="text-lg">Yükleniyor...</div>
+            </div>
+        );
+    }
 
     return (
         <div>
@@ -96,18 +115,32 @@ export default function BeforeAfter() {
                                 </TableCell>
                                 <TableCell className="px-5 py-4 sm:px-6 text-start">
                                     <div className="max-w-md truncate" title={item.description}>
-                                        {item.description}
+                                        {item.description || "-"}
                                     </div>
                                 </TableCell>
                                 <TableCell className="px-5 py-4 sm:px-6 text-start">
-                                    <div className="max-w-xs truncate text-sm text-gray-500">
-                                        {item.beforeImage || "-"}
-                                    </div>
+                                    {item.beforeImage ? (
+                                        <img 
+                                            src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}${item.beforeImage}`}
+                                            alt="Before"
+                                            className="w-20 h-20 object-cover rounded"
+                                            onError={(e) => { e.target.src = '/placeholder.webp'; }}
+                                        />
+                                    ) : (
+                                        <span className="text-gray-400">-</span>
+                                    )}
                                 </TableCell>
                                 <TableCell className="px-5 py-4 sm:px-6 text-start">
-                                    <div className="max-w-xs truncate text-sm text-gray-500">
-                                        {item.afterImage || "-"}
-                                    </div>
+                                    {item.afterImage ? (
+                                        <img 
+                                            src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}${item.afterImage}`}
+                                            alt="After"
+                                            className="w-20 h-20 object-cover rounded"
+                                            onError={(e) => { e.target.src = '/placeholder.webp'; }}
+                                        />
+                                    ) : (
+                                        <span className="text-gray-400">-</span>
+                                    )}
                                 </TableCell>
                                 <TableCell className="px-5 py-4 sm:px-6 text-start">
                                     {item.isActive ? (
@@ -155,4 +188,3 @@ export default function BeforeAfter() {
         </div>
     );
 }
-

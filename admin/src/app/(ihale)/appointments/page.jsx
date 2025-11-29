@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import TableContainer from "@/components/royal-common/Table";
@@ -7,69 +7,73 @@ import Button from "@/components/ui/button/Button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import ComponentCard from "@/components/common/ComponentCard";
+import axios from "@/axios";
 
 export default function Appointments() {
-    const [appointments, setAppointments] = useState([
-        {
-            id: "1",
-            patientName: "Ahmet Yılmaz",
-            patientPhone: "0532 123 45 67",
-            date: "2024-03-15",
-            time: "10:00",
-            doctor: "Dr. Mehmet Öz",
-            service: "Kontrol",
-            status: "Tamamlandı",
-            notes: "Düzenli kontrol",
-        },
-        {
-            id: "2",
-            patientName: "Ayşe Demir",
-            patientPhone: "0533 234 56 78",
-            date: "2024-03-20",
-            time: "14:30",
-            doctor: "Dr. Ayşe Demir",
-            service: "Tedavi",
-            status: "Bekliyor",
-            notes: "Acil",
-        },
-        {
-            id: "3",
-            patientName: "Mehmet Kaya",
-            patientPhone: "0534 345 67 89",
-            date: "2024-03-25",
-            time: "11:00",
-            doctor: "Dr. Mehmet Öz",
-            service: "Kontrol",
-            status: "Planlandı",
-            notes: "",
-        },
-    ]);
+    const [appointments, setAppointments] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState({
         search: '',
         status: 'all',
     });
 
+    useEffect(() => {
+        fetchAppointments();
+    }, [filters]);
+
+    const fetchAppointments = async () => {
+        try {
+            setLoading(true);
+            const params = new URLSearchParams();
+            if (filters.search) params.append('search', filters.search);
+            if (filters.status !== 'all') params.append('status', filters.status);
+            
+            const response = await axios.get(`/appointments?${params.toString()}`);
+            if (response.data.success) {
+                setAppointments(response.data.data || []);
+            }
+        } catch (error) {
+            console.error('Error fetching appointments:', error);
+            alert('Randevular yüklenirken bir hata oluştu');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleDelete = async (id) => {
         if (!window.confirm('Bu randevuyu silmek istediğinize emin misiniz?')) {
             return;
         }
-        setAppointments(prev => prev.filter(appointment => appointment.id !== id));
+        try {
+            await axios.delete(`/appointments/${id}`);
+            alert('Randevu başarıyla silindi');
+            fetchAppointments();
+        } catch (error) {
+            console.error('Error deleting appointment:', error);
+            alert('Randevu silinirken bir hata oluştu');
+        }
     };
 
     const filteredAppointments = appointments.filter(appointment => {
         if (filters.search) {
             const searchLower = filters.search.toLowerCase();
             return (
-                appointment.patientName.toLowerCase().includes(searchLower) ||
-                appointment.patientPhone.includes(searchLower) ||
-                appointment.doctor.toLowerCase().includes(searchLower)
+                appointment.name?.toLowerCase().includes(searchLower) ||
+                appointment.phone?.includes(searchLower) ||
+                appointment.doctorName?.toLowerCase().includes(searchLower) ||
+                appointment.serviceName?.toLowerCase().includes(searchLower)
             );
-        }
-        if (filters.status !== 'all') {
-            return appointment.status === filters.status;
         }
         return true;
     });
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="text-lg">Yükleniyor...</div>
+            </div>
+        );
+    }
 
     return (
         <div>
@@ -112,10 +116,10 @@ export default function Appointments() {
                         renderItem={(appointment) => (
                             <TableRow key={appointment.id}>
                                 <TableCell className="px-5 py-4 sm:px-6 text-start font-medium">
-                                    {appointment.patientName}
+                                    {appointment.name}
                                 </TableCell>
                                 <TableCell className="px-5 py-4 sm:px-6 text-start">
-                                    {appointment.patientPhone}
+                                    {appointment.phone}
                                 </TableCell>
                                 <TableCell className="px-5 py-4 sm:px-6 text-start">
                                     {new Date(appointment.date).toLocaleDateString('tr-TR')}
@@ -124,10 +128,10 @@ export default function Appointments() {
                                     {appointment.time}
                                 </TableCell>
                                 <TableCell className="px-5 py-4 sm:px-6 text-start">
-                                    {appointment.doctor}
+                                    {appointment.doctorName || appointment.doctor?.name || '-'}
                                 </TableCell>
                                 <TableCell className="px-5 py-4 sm:px-6 text-start">
-                                    {appointment.service}
+                                    {appointment.serviceName || appointment.service?.title || '-'}
                                 </TableCell>
                                 <TableCell className="px-5 py-4 sm:px-6 text-start">
                                     {appointment.status === "Tamamlandı" ? (
@@ -172,4 +176,3 @@ export default function Appointments() {
         </div>
     );
 }
-

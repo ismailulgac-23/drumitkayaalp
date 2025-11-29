@@ -23,11 +23,18 @@ axios.interceptors.request.use(
     }
 );
 
-// Response interceptor - 401 durumunda logout kaldırıldı (sadece tasarım için)
+// Response interceptor - 401 durumunda logout
 axios.interceptors.response.use(
     (response) => response,
     (error) => {
-        // Auth kontrolü yok, sadece hata döndür
+        if (error.response?.status === 401) {
+            // Token expired or invalid
+            localStorage.removeItem('token');
+            // Only redirect if not already on signin page
+            if (typeof window !== 'undefined' && window.location.pathname !== '/signin') {
+                window.location.href = '/signin';
+            }
+        }
         return Promise.reject(error);
     }
 );

@@ -5,10 +5,13 @@ import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import ComponentCard from "@/components/common/ComponentCard";
 import Button from "@/components/ui/button/Button";
 import { Icon } from "@iconify/react";
+import axios from "@/axios";
 
 export default function CreateTestimonial() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [avatar, setAvatar] = useState(null);
+    const [preview, setPreview] = useState(null);
     const [formData, setFormData] = useState({
         patientName: "",
         rating: 5,
@@ -21,11 +24,34 @@ export default function CreateTestimonial() {
         e.preventDefault();
         setLoading(true);
         
-        setTimeout(() => {
+        try {
+            const formDataToSend = new FormData();
+            formDataToSend.append('patientName', formData.patientName);
+            formDataToSend.append('rating', formData.rating);
+            formDataToSend.append('comment', formData.comment);
+            formDataToSend.append('date', formData.date);
+            formDataToSend.append('isActive', formData.isActive);
+            
+            if (avatar) {
+                formDataToSend.append('avatar', avatar);
+            }
+
+            const response = await axios.post('/testimonials', formDataToSend, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            if (response.data.success) {
+                alert("Yorum başarıyla eklendi!");
+                router.push("/site-content/testimonials");
+            }
+        } catch (error) {
+            console.error('Error creating testimonial:', error);
+            alert("Bir hata oluştu!");
+        } finally {
             setLoading(false);
-            alert("Yorum başarıyla eklendi!");
-            router.push("/site-content/testimonials");
-        }, 1000);
+        }
     };
 
     const handleChange = (e) => {
@@ -34,6 +60,22 @@ export default function CreateTestimonial() {
             ...prev,
             [name]: type === 'checkbox' ? checked : value
         }));
+    };
+
+    const handleAvatarChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Dosya boyutu 5MB\'dan küçük olmalıdır');
+                return;
+            }
+            setAvatar(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
     };
 
     const renderStars = (rating) => {
@@ -117,6 +159,54 @@ export default function CreateTestimonial() {
                                 className="w-full rounded-md border border-input bg-background px-3 py-2"
                                 placeholder="Yorum"
                             />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Avatar
+                            </label>
+                            <div className="space-y-4">
+                                {preview ? (
+                                    <div className="relative inline-block">
+                                        <img 
+                                            src={preview} 
+                                            alt="Avatar preview" 
+                                            className="w-32 h-32 rounded-full object-cover border-2 border-gray-300 dark:border-gray-700"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setPreview(null);
+                                                setAvatar(null);
+                                                document.getElementById('avatar-input').value = '';
+                                            }}
+                                            className="absolute top-0 right-0 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                                        >
+                                            <Icon icon="heroicons:x-mark" className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="w-32 h-32 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600">
+                                        <Icon icon="heroicons:user" className="h-12 w-12 text-gray-400" />
+                                    </div>
+                                )}
+                                <input
+                                    id="avatar-input"
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleAvatarChange}
+                                    className="block w-full text-sm text-gray-500 dark:text-gray-400
+                                        file:mr-4 file:py-2 file:px-4
+                                        file:rounded-md file:border-0
+                                        file:text-sm file:font-semibold
+                                        file:bg-primary file:text-white
+                                        hover:file:bg-primary/90
+                                        cursor-pointer"
+                                />
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    PNG, JPG, JPEG (max 5MB)
+                                </p>
+                            </div>
                         </div>
 
                         <div className="flex items-center">

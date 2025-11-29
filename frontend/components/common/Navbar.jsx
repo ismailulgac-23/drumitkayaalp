@@ -1,8 +1,26 @@
 'use client';
 import Link from 'next/link';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 function Navbar() {
+  const [headerLogo, setHeaderLogo] = useState('/assets/imgs/logo-light.png');
+
+  useEffect(() => {
+    fetchLogo();
+  }, []);
+
+  const fetchLogo = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/logos/type/header`);
+      const data = await response.json();
+      if (data.success && data.data) {
+        setHeaderLogo(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}${data.data.url}`);
+      }
+    } catch (error) {
+      console.error('Error fetching header logo:', error);
+    }
+  };
+
   function handleScroll() {
     const bodyScroll = window.scrollY;
     const navbar = document.querySelector('.navbar');
@@ -44,7 +62,7 @@ function Navbar() {
     <nav className="navbar navbar-expand-lg bord blur">
       <div className="container o-hidden">
         <a className="logo icon-img-100" href="/home-personal">
-          <img src="/assets/imgs/logo-light.png" alt="logo" />
+          <img src={headerLogo} alt="logo" onError={(e) => { e.target.src = '/assets/imgs/logo-light.png'; }} />
         </a>
 
         <button

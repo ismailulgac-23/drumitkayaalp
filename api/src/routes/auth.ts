@@ -4,198 +4,10 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import prisma from '../lib/prisma';
 import { AppError } from '../middleware/errorHandler';
-import { sendOTP, verifyOTP } from '../services/sms.service';
 import { AuthRequest } from '../middleware/auth';
 import { validateRequest } from '../middleware/validator';
 
 const router = Router();
-
-// Send OTP - Netgsm SMS entegrasyonu ile
-router.post(
-  '/send-otp',
-  [body('phoneNumber').isMobilePhone('any').withMessage('Geçersiz telefon numarası')],
-  validateRequest,
-  async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-      const { phoneNumber } = req.body;
-
-      // SMS gönder
-      const result = await sendOTP(phoneNumber);
-
-      if (!result.success) {
-        throw new AppError(result.error || 'SMS gönderilemedi', 500);
-      }
-
-      res.json({
-        success: true,
-        message: 'OTP sent successfully',
-        jobid: result.jobid,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-// Verify OTP and Login/Register
-router.post(
-  '/verify-otp',
-  [
-    body('phoneNumber').isMobilePhone('any').withMessage('Geçersiz telefon numarası'),
-    body('otp').isLength({ min: 6, max: 6 }).withMessage('OTP kodu 6 haneli olmalıdır'),
-    body('userType').isIn(['PROVIDER', 'RECEIVER']).optional(),
-    body('name').optional().isString(),
-    body('email').optional().isEmail().withMessage('Geçersiz email adresi'),
-    body('companyName').optional().isString(),
-    body('address').optional().isString(),
-    body('categories').optional().isArray(),
-    body('cityId').optional().isUUID().withMessage('Geçersiz şehir ID'),
-  ],
-  validateRequest,
-  async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-      const { phoneNumber, otp, userType, name, email, companyName, address, categories, cityId } = req.body;
-
-      // OTP doğrula
-      const isValid = verifyOTP(phoneNumber, otp);
-      if (!isValid) {
-        throw new AppError('Geçersiz veya süresi dolmuş OTP kodu', 400);
-      }
-
-      // Telefonu normalize et
-      const normalizedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
-
-      // Find or create user
-      let user = await prisma.user.findUnique({
-        where: { phoneNumber: normalizedPhone },
-      });
-
-      if (!user) {
-        // Eğer kullanıcı yoksa ve userType da yoksa, bu bir login denemesi
-        // Kullanıcıyı kayıt sayfasına yönlendirmek için daha açıklayıcı hata
-        if (!userType) {
-          throw new AppError('Bu telefon numarası ile kayıtlı kullanıcı bulunamadı. Lütfen kayıt olun.', 404);
-        }
-
-        // Handle categories - can be IDs or names
-        let categoryIds: string[] = [];
-        if (categories && Array.isArray(categories) && categories.length > 0) {
-          const categoryRecords = await prisma.category.findMany({
-            where: {
-              OR: [
-                { id: { in: categories } },
-                { name: { in: categories } },
-              ],
-              isActive: true,
-            },
-          });
-          categoryIds = categoryRecords.map(cat => cat.id);
-        }
-
-        // City validation - eğer cityId varsa ve aktif değilse hata ver
-        if (cityId) {
-          const city = await prisma.city.findUnique({
-            where: { id: cityId },
-          });
-          if (!city) {
-            throw new AppError('Geçersiz şehir ID', 400);
-          }
-          if (!city.isActive) {
-            throw new AppError('Seçilen şehir aktif değil', 400);
-          }
-        }
-
-        user = await prisma.user.create({
-          data: {
-            phoneNumber: normalizedPhone,
-            userType,
-            name: name || null,
-            email: email || null,
-            companyName: companyName || null,
-            address: address || null,
-            ...(cityId ? { cityId } : {}),
-            categories: {
-              create: categoryIds.map(categoryId => ({
-                categoryId,
-              })),
-            },
-          } as any,
-          include: {
-            categories: {
-              include: {
-                category: {
-                  select: {
-                    id: true,
-                    name: true,
-                    icon: true,
-                  },
-                },
-              },
-            },
-          },
-        });
-      }
-
-      // Generate JWT
-      const token = jwt.sign(
-        { userId: user.id, userType: user.userType },
-        process.env.JWT_SECRET ?? 'secret',
-        { expiresIn: process.env.JWT_EXPIRES_IN ?? '7d' } as jwt.SignOptions
-      );
-
-
-      // Get user with categories
-      const userWithCategories = await prisma.user.findUnique({
-        where: { id: user.id },
-        include: {
-          categories: {
-            include: {
-              category: {
-                select: {
-                  id: true,
-                  name: true,
-                  icon: true,
-                },
-              },
-            },
-          },
-        },
-      });
-
-      res.json({
-        success: true,
-        message: 'Giriş başarılı',
-        data: {
-          token,
-          user: {
-            id: user.id,
-            phoneNumber: user.phoneNumber,
-            name: user.name,
-            email: user.email,
-            userType: user.userType,
-            isAdmin: user.isAdmin,
-            isActive: user.isActive,
-            profileImage: user.profileImage,
-            companyName: user.companyName,
-            address: user.address,
-            categories: userWithCategories?.categories.map(uc => uc.category.id) || [],
-            bio: user.bio,
-            location: user.location,
-            rating: user.rating,
-            ratingCount: user.ratingCount,
-            responseTime: user.responseTime,
-            memberSince: user.memberSince,
-            completedJobs: user.completedJobs,
-            createdAt: user.createdAt,
-            updatedAt: user.updatedAt,
-          },
-        },
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
 
 // Admin Login - Email/Password ile
 router.post(
@@ -212,19 +24,6 @@ router.post(
       // Find user by email
       const user = await prisma.user.findUnique({
         where: { email },
-        include: {
-          categories: {
-            include: {
-              category: {
-                select: {
-                  id: true,
-                  name: true,
-                  icon: true,
-                },
-              },
-            },
-          },
-        },
       });
 
       if (!user) {
@@ -275,7 +74,6 @@ router.post(
             profileImage: user.profileImage,
             companyName: user.companyName,
             address: user.address,
-            categories: user.categories.map(uc => uc.category.id) || [],
             bio: user.bio,
             location: user.location,
             rating: user.rating,
@@ -318,19 +116,6 @@ router.get(
 
       const user = await prisma.user.findUnique({
         where: { id: decoded.userId },
-        include: {
-          categories: {
-            include: {
-              category: {
-                select: {
-                  id: true,
-                  name: true,
-                  icon: true,
-                },
-              },
-            },
-          },
-        },
       });
 
       if (!user) {
@@ -354,7 +139,6 @@ router.get(
           profileImage: user.profileImage,
           companyName: user.companyName,
           address: user.address,
-          categories: user.categories.map(uc => uc.category.id) || [],
           bio: user.bio,
           location: user.location,
           rating: user.rating,

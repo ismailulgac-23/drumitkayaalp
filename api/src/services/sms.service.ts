@@ -111,9 +111,65 @@ setInterval(() => {
   }
 }, 60000); // Her 1 dakikada bir temizle
 
+// Hasta bilgilendirme mesajı gönder (şu an aktif değil, sadece başarılı mesaj döndürüyor)
+export const sendPatientNotification = async (
+  phoneNumber: string,
+  message: string
+): Promise<{ success: boolean; jobid?: string; error?: string }> => {
+  try {
+    // Telefon numarasını temizle
+    const cleanPhone = phoneNumber.replace(/^\+?90/, '').replace(/^0/, '');
+
+    // Development modunda SMS göndermeden loglayalım
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[SMS Notification] Phone: ${cleanPhone}, Message: ${message.substring(0, 50)}...`);
+      return {
+        success: true,
+        jobid: 'dev-notification-' + Date.now(),
+      };
+    }
+
+    // Production'da gerçek SMS gönder (şu an aktif değil)
+    // TODO: SMS servisi aktif edildiğinde bu kısım açılacak
+    /*
+    const response = await netgsm.sendRestSms({
+      msgheader: process.env.NETGSM_MSGHEADER || '8503031871',
+      encoding: 'TR',
+      messages: [
+        {
+          msg: message,
+          no: cleanPhone,
+        },
+      ],
+    });
+
+    console.log(`[SMS Notification] Sent to ${cleanPhone}, JobID: ${response.jobid}`);
+
+    return {
+      success: true,
+      jobid: response.jobid,
+    };
+    */
+
+    // Şu an için her halükarda başarılı döndür
+    return {
+      success: true,
+      jobid: 'simulated-' + Date.now(),
+    };
+  } catch (error: any) {
+    console.error('[SMS Notification] Error:', error);
+    // Hata olsa bile başarılı döndür (kullanıcı isteği)
+    return {
+      success: true,
+      jobid: 'simulated-error-' + Date.now(),
+    };
+  }
+};
+
 export default {
   sendOTP,
   verifyOTP,
   generateOTP,
+  sendPatientNotification,
 };
 

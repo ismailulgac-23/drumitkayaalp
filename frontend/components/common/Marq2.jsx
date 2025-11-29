@@ -1,10 +1,34 @@
-import React from 'react';
+'use client';
+import React, { useEffect, useState } from 'react';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 function Marq2() {
-  const marquess = ['Get In Touch']; // Replace with your actual array
-  const AllMarquess = Array(6).fill(marquess).flat();
-  const contact = ['Contact Us']; // Replace with your actual array
-  const AllContact = Array(6).fill(contact).flat();
+  const [items, setItems] = useState([]);
+
+  useEffect(() => {
+    fetchItems();
+  }, []);
+
+  const fetchItems = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/marquee2-items`);
+      const data = await response.json();
+      if (data.success && data.data) {
+        setItems(data.data.map(item => item.text));
+      }
+    } catch (error) {
+      console.error('Error fetching marquee2 items:', error);
+    }
+  };
+
+  if (items.length === 0) {
+    return null;
+  }
+
+  // Her item için 6 kopya oluştur
+  const AllMarquess = Array(6).fill(items).flat();
+  const AllContact = Array(6).fill(items).flat();
 
   return (
     <section className="call-marq section-padding o-hidden">
@@ -22,7 +46,7 @@ function Marq2() {
               </div>
             ))}
             {AllMarquess.map((item, i) => (
-              <div key={i} className="item">
+              <div key={`dup-${i}`} className="item">
                 <h4 className="d-flex align-items-center">
                   <span>{item}</span>
                   <span className="icon-img-50 ml-40">
@@ -49,7 +73,7 @@ function Marq2() {
           </div>
           <div className="box">
             {AllContact.map((item, i) => (
-              <div key={i} className="item">
+              <div key={`dup2-${i}`} className="item">
                 <h4 className="d-flex align-items-center">
                   <span>{item}</span>
                 </h4>

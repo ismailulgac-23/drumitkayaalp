@@ -53,9 +53,29 @@ const AppSidebar = () => {
           path: "/appointments",
         },
         {
+          icon: <Icon icon="ri:user-heart-line" className="text-2xl" />,
+          name: "Doktor Yönetimi",
+          path: "/doctors",
+        },
+        {
           icon: <Icon icon="ri:information-line" className="text-2xl" />,
           name: "Hasta Bilgilendirme",
           path: "/patient-info",
+        },
+        {
+          icon: <Icon icon="ri:mail-line" className="text-2xl" />,
+          name: "Mail Bülteni",
+          path: "/newsletters",
+        },
+        {
+          icon: <Icon icon="ri:phone-line" className="text-2xl" />,
+          name: "İletişim Kanalları",
+          path: "/contact-channels",
+        },
+        {
+          icon: <Icon icon="ri:image-line" className="text-2xl" />,
+          name: "Logo Yönetimi",
+          path: "/logos",
         },
         // Site İçerik Yönetimi
         {
@@ -64,20 +84,8 @@ const AppSidebar = () => {
           path: "/site-content",
           subItems: [
             {
-              name: "Anasayfa",
-              path: "/site-content/home",
-            },
-            {
-              name: "Hakkımızda",
-              path: "/site-content/about",
-            },
-            {
               name: "Hizmetler",
               path: "/site-content/services",
-            },
-            {
-              name: "İletişim",
-              path: "/site-content/contact",
             },
             {
               name: "SSS",
@@ -90,6 +98,42 @@ const AppSidebar = () => {
             {
               name: "Memnuniyet Yorumları",
               path: "/site-content/testimonials",
+            },
+          ],
+        },
+        // Sayfalar Yönetimi
+        {
+          icon: <Icon icon="ri:pages-line" className="text-2xl" />,
+          name: "Sayfalar",
+          path: "/site-content",
+          subItems: [
+            {
+              name: "Anasayfa Intro",
+              path: "/site-content/home-intro",
+            },
+            {
+              name: "Marquee Items",
+              path: "/site-content/marquee-items",
+            },
+            {
+              name: "Anasayfa About",
+              path: "/site-content/home-about",
+            },
+            {
+              name: "Uzmanlık Alanları",
+              path: "/site-content/skills",
+            },
+            {
+              name: "Marquee2 Items",
+              path: "/site-content/marquee2-items",
+            },
+            {
+              name: "Hakkımızda Intro",
+              path: "/site-content/about-page-intro",
+            },
+            {
+              name: "İletişim Haritası",
+              path: "/site-content/contact-map",
             },
           ],
         },
@@ -119,7 +163,7 @@ const AppSidebar = () => {
         }, */
       ])
     }
-  }, []);
+  }, [userStore.user]);
   const renderMenuItems = (
     navItems,
     menuType

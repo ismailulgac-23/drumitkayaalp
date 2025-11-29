@@ -4,46 +4,112 @@ import { useRouter, useParams } from "next/navigation";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import ComponentCard from "@/components/common/ComponentCard";
 import Button from "@/components/ui/button/Button";
+import axios from "@/axios";
 
 export default function EditAppointment() {
     const router = useRouter();
     const params = useParams();
     const [loading, setLoading] = useState(false);
+    const [loadingData, setLoadingData] = useState(true);
+    const [doctors, setDoctors] = useState([]);
+    const [services, setServices] = useState([]);
     const [formData, setFormData] = useState({
-        patientName: "",
-        patientPhone: "",
+        name: "",
+        phone: "",
+        email: "",
         date: "",
         time: "",
-        doctor: "",
-        service: "",
+        doctorId: "",
+        serviceId: "",
         status: "Planlandı",
         notes: "",
     });
 
     useEffect(() => {
-        // Simulate fetching appointment data
-        setFormData({
-            patientName: "Ahmet Yılmaz",
-            patientPhone: "0532 123 45 67",
-            date: "2024-03-15",
-            time: "10:00",
-            doctor: "Dr. Mehmet Öz",
-            service: "Kontrol",
-            status: "Tamamlandı",
-            notes: "Düzenli kontrol",
-        });
+        fetchDoctors();
+        fetchServices();
+        fetchAppointment();
     }, [params.id]);
+
+    const fetchDoctors = async () => {
+        try {
+            const response = await axios.get('/doctors');
+            if (response.data.success) {
+                setDoctors(response.data.data || []);
+            }
+        } catch (error) {
+            console.error('Error fetching doctors:', error);
+        }
+    };
+
+    const fetchServices = async () => {
+        try {
+            const response = await axios.get('/services');
+            if (response.data.success) {
+                setServices(response.data.data || []);
+            }
+        } catch (error) {
+            console.error('Error fetching services:', error);
+        }
+    };
+
+    const fetchAppointment = async () => {
+        try {
+            setLoadingData(true);
+            const response = await axios.get(`/appointments/${params.id}`);
+            if (response.data.success) {
+                const appointment = response.data.data;
+                const date = new Date(appointment.date);
+                const formattedDate = date.toISOString().split('T')[0];
+                
+                setFormData({
+                    name: appointment.name || "",
+                    phone: appointment.phone || "",
+                    email: appointment.email || "",
+                    date: formattedDate,
+                    time: appointment.time || "",
+                    doctorId: appointment.doctorId || "",
+                    serviceId: appointment.serviceId || "",
+                    status: appointment.status || "Planlandı",
+                    notes: appointment.notes || "",
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching appointment:', error);
+            alert('Randevu bilgileri yüklenirken bir hata oluştu');
+        } finally {
+            setLoadingData(false);
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         
-        // Simulate API call
-        setTimeout(() => {
+        try {
+            const updateData = {
+                name: formData.name,
+                phone: formData.phone,
+                email: formData.email || undefined,
+                date: formData.date,
+                time: formData.time,
+                status: formData.status,
+                notes: formData.notes || undefined,
+                doctorId: formData.doctorId || undefined,
+                serviceId: formData.serviceId || undefined,
+            };
+
+            const response = await axios.put(`/appointments/${params.id}`, updateData);
+            if (response.data.success) {
+                alert("Randevu başarıyla güncellendi!");
+                router.push("/appointments");
+            }
+        } catch (error) {
+            console.error('Error updating appointment:', error);
+            alert(error.response?.data?.message || 'Randevu güncellenirken bir hata oluştu');
+        } finally {
             setLoading(false);
-            alert("Randevu başarıyla güncellendi!");
-            router.push("/appointments");
-        }, 1000);
+        }
     };
 
     const handleChange = (e) => {
@@ -53,6 +119,14 @@ export default function EditAppointment() {
             [name]: value
         }));
     };
+
+    if (loadingData) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="text-lg">Yükleniyor...</div>
+            </div>
+        );
+    }
 
     return (
         <div>
@@ -71,8 +145,8 @@ export default function EditAppointment() {
                                 </label>
                                 <input
                                     type="text"
-                                    name="patientName"
-                                    value={formData.patientName}
+                                    name="name"
+                                    value={formData.name}
                                     onChange={handleChange}
                                     required
                                     className="w-full rounded-md border border-input bg-background px-3 py-2"
@@ -86,12 +160,26 @@ export default function EditAppointment() {
                                 </label>
                                 <input
                                     type="tel"
-                                    name="patientPhone"
-                                    value={formData.patientPhone}
+                                    name="phone"
+                                    value={formData.phone}
                                     onChange={handleChange}
                                     required
                                     className="w-full rounded-md border border-input bg-background px-3 py-2"
                                     placeholder="0532 123 45 67"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Email
+                                </label>
+                                <input
+                                    type="email"
+                                    name="email"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    className="w-full rounded-md border border-input bg-background px-3 py-2"
+                                    placeholder="email@example.com"
                                 />
                             </div>
 
@@ -125,38 +213,35 @@ export default function EditAppointment() {
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Doktor <span className="text-red-500">*</span>
+                                    Doktor
                                 </label>
                                 <select
-                                    name="doctor"
-                                    value={formData.doctor}
+                                    name="doctorId"
+                                    value={formData.doctorId}
                                     onChange={handleChange}
-                                    required
                                     className="w-full rounded-md border border-input bg-background px-3 py-2"
                                 >
                                     <option value="">Seçiniz</option>
-                                    <option value="Dr. Mehmet Öz">Dr. Mehmet Öz</option>
-                                    <option value="Dr. Ayşe Demir">Dr. Ayşe Demir</option>
-                                    <option value="Dr. Ali Yılmaz">Dr. Ali Yılmaz</option>
+                                    {doctors.map(doctor => (
+                                        <option key={doctor.id} value={doctor.id}>{doctor.name}</option>
+                                    ))}
                                 </select>
                             </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Hizmet <span className="text-red-500">*</span>
+                                    Hizmet
                                 </label>
                                 <select
-                                    name="service"
-                                    value={formData.service}
+                                    name="serviceId"
+                                    value={formData.serviceId}
                                     onChange={handleChange}
-                                    required
                                     className="w-full rounded-md border border-input bg-background px-3 py-2"
                                 >
                                     <option value="">Seçiniz</option>
-                                    <option value="Kontrol">Kontrol</option>
-                                    <option value="Tedavi">Tedavi</option>
-                                    <option value="Muayene">Muayene</option>
-                                    <option value="Konsültasyon">Konsültasyon</option>
+                                    {services.map(service => (
+                                        <option key={service.id} value={service.id}>{service.title}</option>
+                                    ))}
                                 </select>
                             </div>
 
@@ -213,4 +298,3 @@ export default function EditAppointment() {
         </div>
     );
 }
-

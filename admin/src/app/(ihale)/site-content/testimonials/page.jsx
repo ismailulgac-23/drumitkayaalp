@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import TableContainer from "@/components/royal-common/Table";
@@ -7,59 +7,64 @@ import Button from "@/components/ui/button/Button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import ComponentCard from "@/components/common/ComponentCard";
+import axios from "@/axios";
 
 export default function Testimonials() {
-    const [testimonials, setTestimonials] = useState([
-        {
-            id: "1",
-            patientName: "Ahmet Yılmaz",
-            rating: 5,
-            comment: "Çok memnun kaldım, harika bir hizmet!",
-            date: "2024-03-10",
-            isActive: true,
-        },
-        {
-            id: "2",
-            patientName: "Ayşe Demir",
-            rating: 5,
-            comment: "Profesyonel ve güler yüzlü bir ekip. Teşekkürler!",
-            date: "2024-03-05",
-            isActive: true,
-        },
-        {
-            id: "3",
-            patientName: "Mehmet Kaya",
-            rating: 4,
-            comment: "İyi bir deneyimdi, tavsiye ederim.",
-            date: "2024-02-28",
-            isActive: true,
-        },
-    ]);
+    const [testimonials, setTestimonials] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState({
         search: '',
     });
+
+    useEffect(() => {
+        fetchTestimonials();
+    }, []);
+
+    const fetchTestimonials = async () => {
+        try {
+            setLoading(true);
+            const response = await axios.get('/testimonials');
+            if (response.data.success) {
+                setTestimonials(response.data.data || []);
+            }
+        } catch (error) {
+            console.error('Error fetching testimonials:', error);
+            alert('Yorumlar yüklenirken bir hata oluştu');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleDelete = async (id) => {
         if (!window.confirm('Bu yorumu silmek istediğinize emin misiniz?')) {
             return;
         }
-        setTestimonials(prev => prev.filter(testimonial => testimonial.id !== id));
+        try {
+            await axios.delete(`/testimonials/${id}`);
+            alert('Yorum başarıyla silindi');
+            fetchTestimonials();
+        } catch (error) {
+            console.error('Error deleting testimonial:', error);
+            alert('Yorum silinirken bir hata oluştu');
+        }
     };
 
-    const toggleActive = (id, currentStatus) => {
-        setTestimonials(prev => 
-            prev.map(testimonial => 
-                testimonial.id === id ? { ...testimonial, isActive: !currentStatus } : testimonial
-            )
-        );
+    const toggleActive = async (id, currentStatus) => {
+        try {
+            await axios.put(`/testimonials/${id}`, { isActive: !currentStatus });
+            fetchTestimonials();
+        } catch (error) {
+            console.error('Error toggling testimonial:', error);
+            alert('Yorum durumu güncellenirken bir hata oluştu');
+        }
     };
 
     const filteredTestimonials = testimonials.filter(testimonial => {
         if (filters.search) {
             const searchLower = filters.search.toLowerCase();
             return (
-                testimonial.patientName.toLowerCase().includes(searchLower) ||
-                testimonial.comment.toLowerCase().includes(searchLower)
+                testimonial.patientName?.toLowerCase().includes(searchLower) ||
+                testimonial.comment?.toLowerCase().includes(searchLower)
             );
         }
         return true;
@@ -74,6 +79,14 @@ export default function Testimonials() {
             />
         ));
     };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="text-lg">Yükleniyor...</div>
+            </div>
+        );
+    }
 
     return (
         <div>
@@ -166,4 +179,3 @@ export default function Testimonials() {
         </div>
     );
 }
-

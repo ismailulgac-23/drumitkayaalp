@@ -7,238 +7,362 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserType {
-  PROVIDER
-  RECEIVER
-}
-
-enum DemandStatus {
-  ACTIVE
-  CLOSED
-  COMPLETED
-  CANCELLED
-}
-
-enum OfferStatus {
-  PENDING
-  ACCEPTED
-  REJECTED
-  COMPLETED
-}
-
-model Category {
-  id             String   @id @default(uuid())
-  name           String   @unique
-  icon           String?
-  questions      Json?    // Dinamik soru kalıpları
-  parentId       String?  // Üst kategori ID (self-referential)
-  commissionRate Float?   // Komisyon oranı (binde cinsinden, örn: 5 = binde 5)
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  // Relations
-  parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
-  children    Category[] @relation("CategoryHierarchy")
-  demands     Demand[]
-  users       UserCategory[]
-  charityActivities CharityActivity[]
-
-  @@index([name])
-  @@index([isActive])
-  @@index([parentId])
-  @@map("categories")
-}
-
+// Admin/User Model
 model User {
   id            String    @id @default(uuid())
-  phoneNumber   String    @unique
-  name          String?
+  phoneNumber   String?   @unique
   email         String?   @unique
-  password      String?   // Admin login için
-  userType      UserType
-  isAdmin       Boolean   @default(false) // Admin kontrolü
+  password      String?
+  name          String?
+  userType      String? // PROVIDER, RECEIVER
+  isAdmin       Boolean   @default(false)
+  isActive      Boolean   @default(true)
   profileImage  String?
+  companyName   String?
+  address       String?
   bio           String?
   location      String?
   rating        Float     @default(0)
   ratingCount   Int       @default(0)
-  isActive      Boolean   @default(true)
-  
-  // Ek alanlar - Flutter uygulaması için
-  companyName   String?   // Firma adı (PROVIDER için)
-  address       String?   // Adres
-  responseTime  String?   // Yanıt süresi
-  memberSince   String?   // Üyelik tarihi
+  responseTime  Int? // minutes
+  memberSince   DateTime?
   completedJobs Int       @default(0)
-  cityId        String?   // Şehir ID
-  fcmToken      String?   // FCM token for push notifications
-  
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   // Relations
-  demands       Demand[]        @relation("UserDemands")
-  offers        Offer[]         @relation("UserOffers")
-  notifications Notification[]
-  reviews       Review[]        @relation("ReviewsByUser")
-  reviewsReceived Review[]      @relation("ReviewsForUser")
-  categories    UserCategory[]  // İş kategorileri (PROVIDER için - çoklu)
-  charityActivities CharityActivity[] @relation("CharityActivities")
-  city          City?           @relation(fields: [cityId], references: [id], onDelete: SetNull)
+  categories   UserCategory[]
+  appointments Appointment[]
+  testimonials Testimonial[]
 
+  @@index([email])
   @@index([phoneNumber])
-  @@index([userType])
-  @@map("users")
+  @@index([isAdmin])
 }
 
-model Demand {
-  id            String        @id @default(uuid())
-  userId        String
-  title         String
-  description   String
-  categoryId    String
-  location      String?
-  latitude      Float?
-  longitude     Float?
-  budget        Float?
-  images        String[]
-  status        DemandStatus  @default(ACTIVE)
-  
-  // Ek alanlar - Flutter uygulaması için
-  peopleCount       Int?          // Kişi sayısı
-  eventDate         DateTime?     // Etkinlik tarihi
-  eventTime         String?       // Etkinlik saati
-  isUrgent          Boolean       @default(false)
-  deadline          String?       // Teslim süresi
-  address           String?       // Detaylı adres
-  questionResponses Json?         // Dinamik soru cevapları
-  
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  expiresAt     DateTime?
+// Doctor Model
+model Doctor {
+  id        String   @id @default(uuid())
+  name      String
+  email     String?  @unique
+  phone     String?
+  specialty String? // Uzmanlık alanı
+  bio       String?
+  image     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  user          User?         @relation("UserDemands", fields: [userId], references: [id], onDelete: Cascade)
-  category      Category?     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  offers        Offer[]
+  appointments Appointment[]
 
-  @@index([userId])
+  @@index([isActive])
+}
+
+// Patient Model
+model Patient {
+  id        String    @id @default(uuid())
+  name      String
+  phone     String
+  email     String?
+  birthDate DateTime?
+  gender    String? // Erkek, Kadın
+  address   String?
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations
+  appointments Appointment[]
+
+  @@index([phone])
+  @@index([email])
+}
+
+// Service Model
+model Service {
+  id          String   @id @default(uuid())
+  title       String
+  description String?  @db.Text
+  price       Float?
+  duration    String? // "30 dakika", "1 saat" gibi
+  image       String?
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  appointments Appointment[]
+
+  @@index([isActive])
+  @@index([order])
+}
+
+// Appointment Model
+model Appointment {
+  id          String   @id @default(uuid())
+  patientId   String
+  doctorId    String?
+  serviceId   String?
+  name        String // Hasta adı (formdan gelen)
+  phone       String // Hasta telefonu
+  email       String?
+  date        DateTime
+  time        String // "09:00", "10:30" gibi
+  serviceName String? // Hizmet adı (formdan gelen)
+  doctorName  String? // Doktor adı (formdan gelen)
+  notes       String?  @db.Text
+  status      String   @default("Planlandı") // Planlandı, Bekliyor, Tamamlandı, İptal
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  patient Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor  Doctor?  @relation(fields: [doctorId], references: [id], onDelete: SetNull)
+  service Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  user    User?    @relation(fields: [userId], references: [id])
+  userId  String?
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([serviceId])
+  @@index([date])
   @@index([status])
-  @@index([categoryId])
-  @@index([createdAt])
-  @@index([isUrgent])
-  @@map("demands")
 }
 
-model Offer {
-  id            String        @id @default(uuid())
-  demandId      String
-  providerId    String
-  message       String?
-  price         Float?
-  estimatedTime String?
-  status        OfferStatus   @default(PENDING)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+// Testimonial Model
+model Testimonial {
+  id          String   @id @default(uuid())
+  patientName String
+  rating      Int // 1-5 arası
+  comment     String   @db.Text
+  avatarUrl   String?  // Kullanıcı avatar görseli
+  date        DateTime @default(now())
+  isActive    Boolean  @default(true)
+  userId      String? // İsteğe bağlı: User ile ilişki
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
-  demand        Demand?       @relation(fields: [demandId], references: [id], onDelete: Cascade)
-  provider      User?         @relation("UserOffers", fields: [providerId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  @@index([demandId])
-  @@index([providerId])
-  @@index([status])
-  @@map("offers")
+  @@index([isActive])
+  @@index([date])
 }
 
-model Notification {
-  id            String    @id @default(uuid())
-  userId        String
-  title         String
-  message       String
-  type          String
-  isRead        Boolean   @default(false)
-  data          Json?
-  createdAt     DateTime  @default(now())
+// FAQ Model
+model FAQ {
+  id        String   @id @default(uuid())
+  question  String
+  answer    String   @db.Text
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  // Relations
-  user          User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([isRead])
-  @@index([createdAt])
-  @@map("notifications")
+  @@index([isActive])
+  @@index([order])
 }
 
-model Review {
-  id            String    @id @default(uuid())
-  reviewerId    String
-  reviewedUserId String
-  rating        Int
-  comment       String?
-  createdAt     DateTime  @default(now())
+// BeforeAfter Model
+model BeforeAfter {
+  id          String   @id @default(uuid())
+  title       String
+  description String?  @db.Text
+  beforeImage String
+  afterImage  String
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  // Relations
-  reviewer      User?     @relation("ReviewsByUser", fields: [reviewerId], references: [id], onDelete: Cascade)
-  reviewedUser  User?     @relation("ReviewsForUser", fields: [reviewedUserId], references: [id], onDelete: Cascade)
-
-  @@index([reviewerId])
-  @@index([reviewedUserId])
-  @@map("reviews")
+  @@index([isActive])
+  @@index([order])
 }
 
+// Category Model (mevcut yapıdan)
+model Category {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  icon      String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users UserCategory[]
+
+  @@index([isActive])
+}
+
+// UserCategory Model (mevcut yapıdan)
 model UserCategory {
   id         String   @id @default(uuid())
   userId     String
   categoryId String
   createdAt  DateTime @default(now())
 
-  // Relations
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   @@unique([userId, categoryId])
   @@index([userId])
   @@index([categoryId])
-  @@map("user_categories")
 }
 
-model CharityActivity {
-  id            String    @id @default(uuid())
-  providerId    String
-  categoryId    String
-  title         String
-  description   String
-  latitude      Float
-  longitude     Float
-  address       String
-  estimatedEndTime DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  // Relations
-  provider      User      @relation("CharityActivities", fields: [providerId], references: [id], onDelete: Cascade)
-  category      Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-
-  @@index([providerId])
-  @@index([categoryId])
-  @@index([latitude, longitude])
-  @@map("charity_activities")
-}
-
+// City Model (mevcut yapıdan - gerekirse)
 model City {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+// Newsletter Model
+model Newsletter {
+  id        String   @id @default(uuid())
+  email     String
+  name      String?
+  isActive  Boolean  @default(true)
+  subscribedAt DateTime @default(now())
+  unsubscribedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([email])
+  @@index([email])
+  @@index([isActive])
+}
+
+// ContactChannel Model
+model ContactChannel {
   id          String   @id @default(uuid())
-  name        String   @unique
-  isActive    Boolean  @default(false) // Uygulamanın aktif olduğu şehirler
+  type        String   // phone, whatsapp, email, address, social_media
+  label       String   // "Telefon", "WhatsApp", "Email" vb.
+  value       String   // Gerçek değer (numara, email, link vb.)
+  icon        String?   // İkon adı veya URL
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Relations
-  users       User[]
-
-  @@index([name])
+  @@index([type])
   @@index([isActive])
-  @@map("cities")
+  @@index([order])
 }
 
+// Logo Model
+model Logo {
+  id          String   @id @default(uuid())
+  type        String   // header, footer, favicon, og_image
+  name        String   // Logo adı/etiket
+  url         String   // Logo URL'si (upload edilen dosya yolu)
+  alt         String?  // Alt text
+  width       Int?     // Genişlik
+  height      Int?     // Yükseklik
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([type])
+  @@index([type])
+  @@index([isActive])
+}
+
+// Home Intro Model (Anasayfa Intro)
+model HomeIntro {
+  id             String   @id @default(uuid())
+  smallTitle     String?  // Küçük başlık
+  mainTitle      String   // Ana başlık
+  subTitle       String?  // Alt başlık
+  description    String?  @db.Text // Alt yazı
+  buttonText     String?  // Buton adı
+  buttonLink     String?  // Buton link
+  backgroundImage String? // Intro arkaplan
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+// Marquee Item Model (Anasayfa Marquee)
+model MarqueeItem {
+  id        String   @id @default(uuid())
+  text      String   // Marquee metni
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([order])
+}
+
+// Home About Model (Anasayfa About Bölümü)
+model HomeAbout {
+  id          String   @id @default(uuid())
+  image       String?  // Fotoğraf
+  smallTitle  String?  // Küçük üst başlık
+  title       String?  // Başlık
+  content     String?  @db.Text // Content alanı
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+// Skill Model (Uzmanlık Alanları)
+model Skill {
+  id          String   @id @default(uuid())
+  percentage  Int       // Yüzdelik (0-100)
+  title       String    // Alt başlık
+  order       Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([isActive])
+  @@index([order])
+}
+
+// Marquee2 Item Model (Marq2 Component)
+model Marquee2Item {
+  id        String   @id @default(uuid())
+  text      String   // Marquee metni
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([order])
+}
+
+// About Page Intro Model (Hakkımızda Intro)
+model AboutPageIntro {
+  id          String   @id @default(uuid())
+  image       String?  // Fotoğraf
+  title       String?  // Başlık
+  content     String?  @db.Text // Content alanı
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+// Contact Map Model (İletişim Harita)
+model ContactMap {
+  id          String   @id @default(uuid())
+  iframeCode  String   @db.Text // Harita iframe kodu
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+}

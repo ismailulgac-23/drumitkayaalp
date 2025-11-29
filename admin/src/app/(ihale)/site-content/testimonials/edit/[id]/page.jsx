@@ -5,11 +5,15 @@ import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import ComponentCard from "@/components/common/ComponentCard";
 import Button from "@/components/ui/button/Button";
 import { Icon } from "@iconify/react";
+import axios from "@/axios";
 
 export default function EditTestimonial() {
     const router = useRouter();
     const params = useParams();
     const [loading, setLoading] = useState(false);
+    const [avatar, setAvatar] = useState(null);
+    const [preview, setPreview] = useState(null);
+    const [currentAvatarUrl, setCurrentAvatarUrl] = useState(null);
     const [formData, setFormData] = useState({
         patientName: "",
         rating: 5,
@@ -19,25 +23,64 @@ export default function EditTestimonial() {
     });
 
     useEffect(() => {
-        // Simulate fetching testimonial data
-        setFormData({
-            patientName: "Ahmet Yılmaz",
-            rating: 5,
-            comment: "Çok memnun kaldım, harika bir hizmet!",
-            date: "2024-03-10",
-            isActive: true,
-        });
+        fetchTestimonial();
     }, [params.id]);
+
+    const fetchTestimonial = async () => {
+        try {
+            const response = await axios.get(`/testimonials/${params.id}`);
+            if (response.data.success) {
+                const testimonial = response.data.data;
+                setFormData({
+                    patientName: testimonial.patientName,
+                    rating: testimonial.rating,
+                    comment: testimonial.comment,
+                    date: testimonial.date ? new Date(testimonial.date).toISOString().split('T')[0] : "",
+                    isActive: testimonial.isActive,
+                });
+                if (testimonial.avatarUrl) {
+                    setCurrentAvatarUrl(testimonial.avatarUrl);
+                    setPreview(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}${testimonial.avatarUrl}`);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching testimonial:', error);
+            alert('Yorum bilgileri yüklenirken bir hata oluştu');
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         
-        setTimeout(() => {
+        try {
+            const formDataToSend = new FormData();
+            formDataToSend.append('patientName', formData.patientName);
+            formDataToSend.append('rating', formData.rating);
+            formDataToSend.append('comment', formData.comment);
+            formDataToSend.append('date', formData.date);
+            formDataToSend.append('isActive', formData.isActive);
+            
+            if (avatar) {
+                formDataToSend.append('avatar', avatar);
+            }
+
+            const response = await axios.put(`/testimonials/${params.id}`, formDataToSend, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            if (response.data.success) {
+                alert("Yorum başarıyla güncellendi!");
+                router.push("/site-content/testimonials");
+            }
+        } catch (error) {
+            console.error('Error updating testimonial:', error);
+            alert("Bir hata oluştu!");
+        } finally {
             setLoading(false);
-            alert("Yorum başarıyla güncellendi!");
-            router.push("/site-content/testimonials");
-        }, 1000);
+        }
     };
 
     const handleChange = (e) => {
@@ -46,6 +89,22 @@ export default function EditTestimonial() {
             ...prev,
             [name]: type === 'checkbox' ? checked : value
         }));
+    };
+
+    const handleAvatarChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Dosya boyutu 5MB\'dan küçük olmalıdır');
+                return;
+            }
+            setAvatar(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
     };
 
     const renderStars = (rating) => {
@@ -129,6 +188,54 @@ export default function EditTestimonial() {
                                 className="w-full rounded-md border border-input bg-background px-3 py-2"
                                 placeholder="Yorum"
                             />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Avatar
+                            </label>
+                            <div className="space-y-4">
+                                {preview ? (
+                                    <div className="relative inline-block">
+                                        <img 
+                                            src={preview} 
+                                            alt="Avatar preview" 
+                                            className="w-32 h-32 rounded-full object-cover border-2 border-gray-300 dark:border-gray-700"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setPreview(currentAvatarUrl ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}${currentAvatarUrl}` : null);
+                                                setAvatar(null);
+                                                document.getElementById('avatar-input-edit').value = '';
+                                            }}
+                                            className="absolute top-0 right-0 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                                        >
+                                            <Icon icon="heroicons:x-mark" className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="w-32 h-32 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600">
+                                        <Icon icon="heroicons:user" className="h-12 w-12 text-gray-400" />
+                                    </div>
+                                )}
+                                <input
+                                    id="avatar-input-edit"
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleAvatarChange}
+                                    className="block w-full text-sm text-gray-500 dark:text-gray-400
+                                        file:mr-4 file:py-2 file:px-4
+                                        file:rounded-md file:border-0
+                                        file:text-sm file:font-semibold
+                                        file:bg-primary file:text-white
+                                        hover:file:bg-primary/90
+                                        cursor-pointer"
+                                />
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    PNG, JPG, JPEG (max 5MB)
+                                </p>
+                            </div>
                         </div>
 
                         <div className="flex items-center">

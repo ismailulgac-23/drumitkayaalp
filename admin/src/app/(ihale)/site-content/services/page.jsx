@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import TableContainer from "@/components/royal-common/Table";
@@ -7,66 +7,76 @@ import Button from "@/components/ui/button/Button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import ComponentCard from "@/components/common/ComponentCard";
+import axios from "@/axios";
 
 export default function Services() {
-    const [services, setServices] = useState([
-        {
-            id: "1",
-            title: "Diş Temizliği",
-            description: "Profesyonel diş temizliği hizmeti",
-            price: 500,
-            duration: "30 dakika",
-            image: "",
-            isActive: true,
-        },
-        {
-            id: "2",
-            title: "Dolgu",
-            description: "Estetik ve sağlam dolgu işlemleri",
-            price: 800,
-            duration: "45 dakika",
-            image: "",
-            isActive: true,
-        },
-        {
-            id: "3",
-            title: "Kanal Tedavisi",
-            description: "Uzman kanal tedavisi hizmeti",
-            price: 1500,
-            duration: "60 dakika",
-            image: "",
-            isActive: true,
-        },
-    ]);
+    const [services, setServices] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState({
         search: '',
     });
+
+    useEffect(() => {
+        fetchServices();
+    }, []);
+
+    const fetchServices = async () => {
+        try {
+            setLoading(true);
+            const response = await axios.get('/services');
+            if (response.data.success) {
+                setServices(response.data.data || []);
+            }
+        } catch (error) {
+            console.error('Error fetching services:', error);
+            alert('Hizmetler yüklenirken bir hata oluştu');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleDelete = async (id) => {
         if (!window.confirm('Bu hizmeti silmek istediğinize emin misiniz?')) {
             return;
         }
-        setServices(prev => prev.filter(service => service.id !== id));
+        try {
+            await axios.delete(`/services/${id}`);
+            alert('Hizmet başarıyla silindi');
+            fetchServices();
+        } catch (error) {
+            console.error('Error deleting service:', error);
+            alert('Hizmet silinirken bir hata oluştu');
+        }
     };
 
-    const toggleActive = (id, currentStatus) => {
-        setServices(prev => 
-            prev.map(service => 
-                service.id === id ? { ...service, isActive: !currentStatus } : service
-            )
-        );
+    const toggleActive = async (id, currentStatus) => {
+        try {
+            await axios.put(`/services/${id}`, { isActive: !currentStatus });
+            fetchServices();
+        } catch (error) {
+            console.error('Error toggling service:', error);
+            alert('Hizmet durumu güncellenirken bir hata oluştu');
+        }
     };
 
     const filteredServices = services.filter(service => {
         if (filters.search) {
             const searchLower = filters.search.toLowerCase();
             return (
-                service.title.toLowerCase().includes(searchLower) ||
-                service.description.toLowerCase().includes(searchLower)
+                service.title?.toLowerCase().includes(searchLower) ||
+                service.description?.toLowerCase().includes(searchLower)
             );
         }
         return true;
     });
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="text-lg">Yükleniyor...</div>
+            </div>
+        );
+    }
 
     return (
         <div>
@@ -94,20 +104,32 @@ export default function Services() {
                     </div>
                     <TableContainer
                         data={filteredServices}
-                        navItems={["Hizmet Adı", "Açıklama", "Fiyat", "Süre", "Durum", "İşlemler"]}
+                        navItems={["Görsel", "Hizmet Adı", "Açıklama", "Fiyat", "Süre", "Durum", "İşlemler"]}
                         renderItem={(service) => (
                             <TableRow key={service.id}>
+                                <TableCell className="px-5 py-4 sm:px-6 text-start">
+                                    {service.image ? (
+                                        <img 
+                                            src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}${service.image}`}
+                                            alt={service.title}
+                                            className="w-16 h-16 object-cover rounded"
+                                            onError={(e) => { e.target.src = '/placeholder.webp'; }}
+                                        />
+                                    ) : (
+                                        <span className="text-gray-400">-</span>
+                                    )}
+                                </TableCell>
                                 <TableCell className="px-5 py-4 sm:px-6 text-start font-medium">
                                     {service.title}
                                 </TableCell>
                                 <TableCell className="px-5 py-4 sm:px-6 text-start">
-                                    {service.description}
+                                    {service.description || "-"}
                                 </TableCell>
                                 <TableCell className="px-5 py-4 sm:px-6 text-start font-semibold">
-                                    ₺{service.price.toLocaleString('tr-TR')}
+                                    {service.price ? `₺${service.price.toLocaleString('tr-TR')}` : "-"}
                                 </TableCell>
                                 <TableCell className="px-5 py-4 sm:px-6 text-start">
-                                    {service.duration}
+                                    {service.duration || "-"}
                                 </TableCell>
                                 <TableCell className="px-5 py-4 sm:px-6 text-start">
                                     {service.isActive ? (
@@ -128,7 +150,7 @@ export default function Services() {
                                     </Link>
                                     <Button 
                                         size="sm" 
-                                        variant={service.isActive ? "outline" : "outline"}
+                                        variant="outline"
                                         className="flex items-center justify-center"
                                         onClick={() => toggleActive(service.id, service.isActive)}
                                     >
@@ -155,4 +177,3 @@ export default function Services() {
         </div>
     );
 }
-

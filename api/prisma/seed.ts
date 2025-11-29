@@ -1,723 +1,967 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
-import { categories } from '../src/data/categories';
+import fs from 'fs';
+import path from 'path';
 dotenv.config();
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('🌱 Starting seed...');
+  console.log('🧹 Cleaning database...');
 
-  // Create Cities
-  console.log('🏙️ Creating cities...');
-  const izmir = await prisma.city.upsert({
-    where: { name: 'İzmir' },
-    update: { isActive: true },
-    create: {
-      name: 'İzmir',
-      isActive: true,
-    },
-  });
-  console.log(`  ✅ Created city: İzmir (${izmir.id})`);
-
-  const manisa = await prisma.city.upsert({
-    where: { name: 'Manisa' },
-    update: { isActive: true },
-    create: {
-      name: 'Manisa',
-      isActive: true,
-    },
-  });
-  console.log(`  ✅ Created city: Manisa (${manisa.id})`);
-
-  // Create Categories with hierarchy
-  console.log('📦 Creating categories...');
-  const categoryMap = new Map<string, string>();
-
-  // Define parent categories - All related to charity and food services
-  const parentCategories = [
-    { id: 'catering', name: 'Catering Hizmetleri', icon: '🍲' },
-    { id: 'hayir_yemek', name: 'Hayır Yemekleri', icon: '🍲' },
-    { id: 'toplu_yemek', name: 'Toplu Yemek', icon: '🍲' },
-    { id: 'ozel_gun', name: 'Özel Gün Yemekleri', icon: '🍲' },
-    { id: 'mevlit_catering', name: 'Mevlit Catering', icon: '🍲' },
-    { id: 'iftar_catering', name: 'İftar Catering', icon: '🍲' },
-  ];
-
-  // Create parent categories
-  for (const parentCat of parentCategories) {
-    const catData = categories.find(c => c.id === parentCat.id);
-    const category = await prisma.category.upsert({
-      where: { name: parentCat.name },
-      update: {
-        icon: parentCat.icon,
-        questions: catData?.questions as any || null,
-        isActive: true,
-        parentId: null,
-      },
-      create: {
-        name: parentCat.name,
-        icon: parentCat.icon,
-        questions: catData?.questions as any || null,
-        isActive: true,
-        parentId: null,
-      },
-    });
-    categoryMap.set(parentCat.id, category.id);
-    console.log(`  ✅ Created parent category: ${parentCat.name} (${category.id})`);
+  // Ensure uploads directory exists
+  const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'image');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
   }
 
-  // Define child categories for each parent - All related to charity and food services
-  const childCategoriesMap: { [key: string]: Array<{ id: string; name: string; icon: string }> } = {
-    catering: [
-      { id: 'pilav', name: 'Pilav', icon: '🍲' },
-      { id: 'lokma', name: 'Lokma', icon: '🍲' },
-      { id: 'helva', name: 'Helva', icon: '🍲' },
-      { id: 'asure', name: 'Aşure', icon: '🍲' },
-      { id: 'borek', name: 'Börek', icon: '🍲' },
-      { id: 'corba', name: 'Çorba', icon: '🍲' },
-    ],
-    hayir_yemek: [
-      { id: 'cuma_yemegi', name: 'Cuma Yemeği', icon: '🍲' },
-      { id: 'mevlit_yemegi', name: 'Mevlit Yemeği', icon: '🍲' },
-      { id: 'hayir_pilav', name: 'Hayır Pilavı', icon: '🍲' },
-      { id: 'hayir_lokma', name: 'Hayır Lokması', icon: '🍲' },
-      { id: 'hayir_helva', name: 'Hayır Helvası', icon: '🍲' },
-      { id: 'hayir_asure', name: 'Hayır Aşuresi', icon: '🍲' },
-    ],
-    toplu_yemek: [
-      { id: 'toplu_pilav', name: 'Toplu Pilav', icon: '🍲' },
-      { id: 'toplu_corba', name: 'Toplu Çorba', icon: '🍲' },
-      { id: 'toplu_ana_yemek', name: 'Toplu Ana Yemek', icon: '🍲' },
-      { id: 'toplu_tatli', name: 'Toplu Tatlı', icon: '🍲' },
-      { id: 'toplu_ikram', name: 'Toplu İkram', icon: '🍲' },
-    ],
-    ozel_gun: [
-      { id: 'dugun_yemek', name: 'Düğün Yemeği', icon: '🍲' },
-      { id: 'sunnnet_yemek', name: 'Sünnet Yemeği', icon: '🍲' },
-      { id: 'acilis_yemek', name: 'Açılış Yemeği', icon: '🍲' },
-      { id: 'anma_yemek', name: 'Anma Yemeği', icon: '🍲' },
-      { id: 'kutlama_yemek', name: 'Kutlama Yemeği', icon: '🍲' },
-    ],
-    mevlit_catering: [
-      { id: 'mevlit_pilav', name: 'Mevlit Pilavı', icon: '🍲' },
-      { id: 'mevlit_lokma', name: 'Mevlit Lokması', icon: '🍲' },
-      { id: 'mevlit_helva', name: 'Mevlit Helvası', icon: '🍲' },
-      { id: 'mevlit_asure', name: 'Mevlit Aşuresi', icon: '🍲' },
-      { id: 'mevlit_ikram', name: 'Mevlit İkramı', icon: '🍲' },
-    ],
-    iftar_catering: [
-      { id: 'iftar_pilav', name: 'İftar Pilavı', icon: '🍲' },
-      { id: 'iftar_corba', name: 'İftar Çorbası', icon: '🍲' },
-      { id: 'iftar_ana_yemek', name: 'İftar Ana Yemek', icon: '🍲' },
-      { id: 'iftar_tatli', name: 'İftar Tatlısı', icon: '🍲' },
-      { id: 'iftar_ikram', name: 'İftar İkramı', icon: '🍲' },
-    ],
-  };
+  // Delete all data in correct order (respecting foreign key constraints)
+  await prisma.appointment.deleteMany({});
+  await prisma.testimonial.deleteMany({});
+  await prisma.beforeAfter.deleteMany({});
+  await prisma.fAQ.deleteMany({});
+  await prisma.service.deleteMany({});
+  await prisma.patient.deleteMany({});
+  await prisma.doctor.deleteMany({});
+  await prisma.newsletter.deleteMany({});
+  await prisma.contactChannel.deleteMany({});
+  await prisma.userCategory.deleteMany({});
+  await prisma.category.deleteMany({});
+  await prisma.city.deleteMany({});
+  await prisma.user.deleteMany({});
+  await prisma.homeIntro.deleteMany({});
+  await prisma.marqueeItem.deleteMany({});
+  await prisma.homeAbout.deleteMany({});
+  await prisma.skill.deleteMany({});
+  await prisma.marquee2Item.deleteMany({});
+  await prisma.aboutPageIntro.deleteMany({});
+  await prisma.contactMap.deleteMany({});
 
-  // Create child categories
-  for (const [parentId, childCats] of Object.entries(childCategoriesMap)) {
-    const parentCategoryId = categoryMap.get(parentId);
-    if (!parentCategoryId) continue;
+  console.log('✅ Database cleaned successfully!');
+  console.log('');
 
-    for (const childCat of childCats) {
-      const catData = categories.find(c => c.id === childCat.id);
-      const category = await prisma.category.upsert({
-        where: { name: childCat.name },
-        update: {
-          icon: childCat.icon,
-          questions: catData?.questions as any || null,
-          isActive: true,
-          parentId: parentCategoryId,
-        },
-        create: {
-          name: childCat.name,
-          icon: childCat.icon,
-          questions: catData?.questions as any || null,
-          isActive: true,
-          parentId: parentCategoryId,
-        },
-      });
-      categoryMap.set(childCat.id, category.id);
-      console.log(`  ✅ Created child category: ${childCat.name} (${category.id}) under ${parentCategories.find(p => p.id === parentId)?.name}`);
+  // Create Admin User
+  console.log('👤 Creating admin user...');
+  const hashedPassword = await bcrypt.hash('admin123', 10);
+  const admin = await prisma.user.upsert({
+    where: { email: 'admin@klinik.com' },
+    update: {
+      password: hashedPassword,
+      isAdmin: true,
+      isActive: true,
+    },
+    create: {
+      email: 'admin@klinik.com',
+      password: hashedPassword,
+      name: 'Admin Kullanıcı',
+      phoneNumber: '+905551234567',
+      userType: 'PROVIDER',
+      isAdmin: true,
+      isActive: true,
+    },
+  });
+  console.log(`  ✅ Created admin: ${admin.email} (Password: admin123)`);
+
+  // Create Doctors
+  console.log('👨‍⚕️ Creating doctors...');
+  const doctor1 = await prisma.doctor.upsert({
+    where: { email: 'ahmet.yilmaz@klinik.com' },
+    update: {},
+    create: {
+      name: 'Dr. Ahmet Yılmaz',
+      email: 'ahmet.yilmaz@klinik.com',
+      phone: '0532 123 45 67',
+      specialty: 'Genel Cerrahi',
+      bio: '15 yıllık deneyimli genel cerrah',
+      isActive: true,
+    },
+  });
+  console.log(`  ✅ Created doctor: ${doctor1.name}`);
+
+  const doctor2 = await prisma.doctor.upsert({
+    where: { email: 'ayse.demir@klinik.com' },
+    update: {},
+    create: {
+      name: 'Dr. Ayşe Demir',
+      email: 'ayse.demir@klinik.com',
+      phone: '0533 234 56 78',
+      specialty: 'Dahiliye',
+      bio: 'Uzman dahiliye doktoru',
+      isActive: true,
+    },
+  });
+  console.log(`  ✅ Created doctor: ${doctor2.name}`);
+
+  const doctor3 = await prisma.doctor.upsert({
+    where: { email: 'mehmet.kaya@klinik.com' },
+      update: {},
+      create: {
+      name: 'Dr. Mehmet Kaya',
+      email: 'mehmet.kaya@klinik.com',
+      phone: '0534 345 67 89',
+      specialty: 'Kardiyoloji',
+      bio: 'Kardiyoloji uzmanı',
+      isActive: true,
+      },
+    });
+  console.log(`  ✅ Created doctor: ${doctor3.name}`);
+
+  const doctor4 = await prisma.doctor.upsert({
+    where: { email: 'zeynep.oz@klinik.com' },
+    update: {},
+    create: {
+      name: 'Dr. Zeynep Öz',
+      email: 'zeynep.oz@klinik.com',
+      phone: '0535 456 78 90',
+      specialty: 'Pediatri',
+      bio: 'Çocuk sağlığı uzmanı',
+      isActive: true,
+    },
+  });
+  console.log(`  ✅ Created doctor: ${doctor4.name}`);
+
+  // Create Services
+  console.log('🏥 Creating services...');
+  // Copy service images to uploads directory
+  const serviceImages = ['3.png', '4.png', '5.png'];
+  const serviceImageUrls: string[] = [];
+  
+  for (const img of serviceImages) {
+    const sourcePath = path.join(process.cwd(), 'public', 'assets', 'imgs', 'serv-icons', img);
+    const destPath = path.join(uploadsDir, `service-${Date.now()}-${img}`);
+    
+    if (fs.existsSync(sourcePath)) {
+      try {
+        fs.copyFileSync(sourcePath, destPath);
+        serviceImageUrls.push(`/uploads/image/${path.basename(destPath)}`);
+        console.log(`  ✅ Copied service image: ${img}`);
+      } catch (error) {
+        console.log(`  ⚠️ Could not copy ${img}, using placeholder`);
+        serviceImageUrls.push('/assets/imgs/serv-icons/default.png');
+      }
+    } else {
+      serviceImageUrls.push('/assets/imgs/serv-icons/default.png');
     }
   }
 
-  // Create Provider Users
-  console.log('👤 Creating users...');
-  const provider1 = await prisma.user.upsert({
-    where: { phoneNumber: '+905551234567' },
+  const service1 = await prisma.service.upsert({
+    where: { id: 'service-1' },
+      update: { image: serviceImageUrls[0] || '/assets/imgs/serv-icons/default.png' },
+      create: {
+      title: 'Genel Muayene',
+      description: 'Kapsamlı genel sağlık kontrolü ve muayene hizmetleri. Uzman doktorlarımız tarafından detaylı değerlendirme.',
+      price: 500,
+      duration: '30 dakika',
+      image: serviceImageUrls[0] || '/assets/imgs/serv-icons/default.png',
+      order: 1,
+      isActive: true,
+      },
+    });
+  console.log(`  ✅ Created service: ${service1.title}`);
+
+  const service2 = await prisma.service.upsert({
+    where: { id: 'service-2' },
+    update: { image: serviceImageUrls[1] || '/assets/imgs/serv-icons/default.png' },
+    create: {
+      title: 'Özel Tedaviler',
+      description: 'Özel tedavi programları ve kişiselleştirilmiş bakım hizmetleri. Modern tıbbi yöntemlerle en iyi sonuçlar.',
+      price: 1500,
+      duration: '60 dakika',
+      image: serviceImageUrls[1] || '/assets/imgs/serv-icons/default.png',
+      order: 2,
+      isActive: true,
+    },
+  });
+  console.log(`  ✅ Created service: ${service2.title}`);
+
+  const service3 = await prisma.service.upsert({
+    where: { id: 'service-3' },
+      update: { image: serviceImageUrls[2] || '/assets/imgs/serv-icons/default.png' },
+      create: {
+      title: 'Konsültasyon',
+      description: 'Uzman doktor konsültasyonları ve ikinci görüş hizmetleri. Sağlık sorularınız için profesyonel danışmanlık.',
+      price: 800,
+      duration: '45 dakika',
+      image: serviceImageUrls[2] || '/assets/imgs/serv-icons/default.png',
+      order: 3,
+      isActive: true,
+      },
+    });
+  console.log(`  ✅ Created service: ${service3.title}`);
+
+  const service4 = await prisma.service.upsert({
+    where: { id: 'service-4' },
+      update: {},
+      create: {
+      title: 'Kontrol Muayenesi',
+      description: 'Takip kontrol muayenesi',
+      price: 300,
+      duration: '20 dakika',
+      order: 4,
+      isActive: true,
+      },
+    });
+  console.log(`  ✅ Created service: ${service4.title}`);
+
+  const service5 = await prisma.service.upsert({
+    where: { id: 'service-5' },
     update: {},
     create: {
-      phoneNumber: '+905551234567',
+      title: 'Acil Hizmet',
+      description: 'Acil müdahale hizmeti',
+      price: 2000,
+      duration: '90 dakika',
+      order: 5,
+      isActive: true,
+    },
+  });
+  console.log(`  ✅ Created service: ${service5.title}`);
+
+  const service6 = await prisma.service.upsert({
+    where: { id: 'service-6' },
+    update: {},
+    create: {
+      title: 'Sağlık Taraması',
+      description: 'Kapsamlı sağlık taraması',
+      price: 2500,
+      duration: '120 dakika',
+      order: 6,
+      isActive: true,
+    },
+  });
+  console.log(`  ✅ Created service: ${service6.title}`);
+
+  // Create Patients
+  console.log('👥 Creating patients...');
+  const patient1 = await prisma.patient.create({
+    data: {
       name: 'Ahmet Yılmaz',
+      phone: '0532 123 45 67',
       email: 'ahmet@example.com',
-      userType: 'PROVIDER',
-      bio: 'Elektrik işlerinde 10 yıllık tecrübeli elektrikçi',
-      location: 'İstanbul, Türkiye',
-      rating: 4.5,
-      ratingCount: 24,
-      profileImage: 'https://i.pravatar.cc/150?img=12',
-      companyName: 'Yılmaz Elektrik',
+      birthDate: new Date('1985-05-15'),
+      gender: 'Erkek',
       address: 'Kadıköy, İstanbul',
-      responseTime: '1-2 saat',
-      memberSince: '2020',
-      completedJobs: 347,
     },
   });
+  console.log(`  ✅ Created patient: ${patient1.name}`);
 
-  // Link provider1 to categories
-  const cateringCategoryId = categoryMap.get('catering');
-  const pilavCategoryId = categoryMap.get('pilav');
-  if (cateringCategoryId && pilavCategoryId) {
-    await prisma.userCategory.upsert({
-      where: {
-        userId_categoryId: {
-          userId: provider1.id,
-          categoryId: cateringCategoryId,
-        },
-      },
-      update: {},
-      create: {
-        userId: provider1.id,
-        categoryId: cateringCategoryId,
-      },
-    });
-    await prisma.userCategory.upsert({
-      where: {
-        userId_categoryId: {
-          userId: provider1.id,
-          categoryId: pilavCategoryId,
-        },
-      },
-      update: {},
-      create: {
-        userId: provider1.id,
-        categoryId: pilavCategoryId,
-      },
-    });
-  }
-
-  const provider2 = await prisma.user.upsert({
-    where: { phoneNumber: '+905551234568' },
-    update: {},
-    create: {
-      phoneNumber: '+905551234568',
-      name: 'Mehmet Demir',
-      email: 'mehmet@example.com',
-      userType: 'PROVIDER',
-      bio: 'Profesyonel tesisatçı, 7/24 hizmet',
-      location: 'Ankara, Türkiye',
-      rating: 4.8,
-      ratingCount: 45,
-      profileImage: 'https://i.pravatar.cc/150?img=13',
-      companyName: 'Demir Catering',
-      address: 'Çankaya, Ankara',
-      responseTime: '2-3 saat',
-      memberSince: '2019',
-      completedJobs: 289,
-    },
-  });
-
-  // Link provider2 to categories
-  const helvaCategoryId = categoryMap.get('helva');
-  const hayirYemekCategoryIdForProvider = categoryMap.get('hayir_yemek');
-  if (pilavCategoryId && hayirYemekCategoryIdForProvider && helvaCategoryId) {
-    await prisma.userCategory.upsert({
-      where: {
-        userId_categoryId: {
-          userId: provider2.id,
-          categoryId: pilavCategoryId,
-        },
-      },
-      update: {},
-      create: {
-        userId: provider2.id,
-        categoryId: pilavCategoryId,
-      },
-    });
-    await prisma.userCategory.upsert({
-      where: {
-        userId_categoryId: {
-          userId: provider2.id,
-          categoryId: hayirYemekCategoryIdForProvider,
-        },
-      },
-      update: {},
-      create: {
-        userId: provider2.id,
-        categoryId: hayirYemekCategoryIdForProvider,
-      },
-    });
-    await prisma.userCategory.upsert({
-      where: {
-        userId_categoryId: {
-          userId: provider2.id,
-          categoryId: helvaCategoryId,
-        },
-      },
-      update: {},
-      create: {
-        userId: provider2.id,
-        categoryId: helvaCategoryId,
-      },
-    });
-  }
-
-  const provider3 = await prisma.user.upsert({
-    where: { phoneNumber: '+905551234569' },
-    update: {},
-    create: {
-      phoneNumber: '+905551234569',
-      name: 'Ali Kaya',
-      email: 'ali@example.com',
-      userType: 'PROVIDER',
-      bio: 'Lokma ve helva ustası, geleneksel lezzet',
-      location: 'İzmir, Türkiye',
-      rating: 4.9,
-      ratingCount: 289,
-      profileImage: 'https://i.pravatar.cc/150?img=14',
-      companyName: 'İzmir Lokma Evi',
-      address: 'Konak, İzmir',
-      responseTime: '1-2 saat',
-      memberSince: '2020',
-      completedJobs: 347,
-    },
-  });
-
-  // Link provider3 to categories
-  const lokmaCategoryId = categoryMap.get('lokma');
-  const asureCategoryId = categoryMap.get('asure');
-  if (lokmaCategoryId && helvaCategoryId && asureCategoryId) {
-    await prisma.userCategory.upsert({
-      where: {
-        userId_categoryId: {
-          userId: provider3.id,
-          categoryId: lokmaCategoryId,
-        },
-      },
-      update: {},
-      create: {
-        userId: provider3.id,
-        categoryId: lokmaCategoryId,
-      },
-    });
-    await prisma.userCategory.upsert({
-      where: {
-        userId_categoryId: {
-          userId: provider3.id,
-          categoryId: helvaCategoryId,
-        },
-      },
-      update: {},
-      create: {
-        userId: provider3.id,
-        categoryId: helvaCategoryId,
-      },
-    });
-    await prisma.userCategory.upsert({
-      where: {
-        userId_categoryId: {
-          userId: provider3.id,
-          categoryId: asureCategoryId,
-        },
-      },
-      update: {},
-      create: {
-        userId: provider3.id,
-        categoryId: asureCategoryId,
-      },
-    });
-  }
-
-  // Create Receiver Users
-  const receiver1 = await prisma.user.upsert({
-    where: { phoneNumber: '+905559876543' },
-    update: {},
-    create: {
-      phoneNumber: '+905559876543',
-      name: 'Ayşe Şahin',
+  const patient2 = await prisma.patient.create({
+    data: {
+      name: 'Ayşe Demir',
+      phone: '0533 234 56 78',
       email: 'ayse@example.com',
-      userType: 'RECEIVER',
-      location: 'İstanbul, Türkiye',
-      profileImage: 'https://i.pravatar.cc/150?img=5',
+      birthDate: new Date('1990-08-22'),
+      gender: 'Kadın',
+      address: 'Üsküdar, İstanbul',
     },
   });
+  console.log(`  ✅ Created patient: ${patient2.name}`);
 
-  const receiver2 = await prisma.user.upsert({
-    where: { phoneNumber: '+905559876544' },
-    update: {},
-    create: {
-      phoneNumber: '+905559876544',
-      name: 'Fatma Çelik',
+  const patient3 = await prisma.patient.create({
+    data: {
+      name: 'Mehmet Kaya',
+      phone: '0534 345 67 89',
+      email: 'mehmet@example.com',
+      birthDate: new Date('1978-12-03'),
+      gender: 'Erkek',
+      address: 'Beşiktaş, İstanbul',
+    },
+  });
+  console.log(`  ✅ Created patient: ${patient3.name}`);
+
+  // Create more patients
+  const patient4 = await prisma.patient.create({
+    data: {
+      name: 'Fatma Şahin',
+      phone: '0535 456 78 90',
       email: 'fatma@example.com',
-      userType: 'RECEIVER',
-      location: 'Ankara, Türkiye',
-      profileImage: 'https://i.pravatar.cc/150?img=6',
+      birthDate: new Date('1992-03-18'),
+      gender: 'Kadın',
+      address: 'Beyoğlu, İstanbul',
     },
   });
+  console.log(`  ✅ Created patient: ${patient4.name}`);
 
-  console.log('✅ Users created');
-
-  // Create Demands
-  console.log('📋 Creating demands...');
-  const demand1 = await prisma.demand.create({
+  const patient5 = await prisma.patient.create({
     data: {
-      userId: receiver1.id,
-      categoryId: lokmaCategoryId!,
-      title: 'Mevlit için Lokma Döktürme',
-      description: 'Rahmetli annemizin ruhu için 500 kişilik lokma dağıtımı yapılacak. Cami avlusunda ikram edilecek.',
-      location: 'Kadıköy, İstanbul',
-      latitude: 40.9877,
-      longitude: 29.0341,
-      budget: 7500,
-      images: [],
-      status: 'ACTIVE',
-      peopleCount: 500,
-      eventDate: new Date('2025-10-20'),
-      eventTime: '14:00',
-      isUrgent: false,
-      deadline: '3 gün',
-      address: 'Kadıköy Camii, Kadıköy Meydanı, İstanbul',
-      questionResponses: {
-        portion_count: 500,
-        lokma_type: 'izmir',
-        serving_style: ['disposable', 'table'],
-        oil_preference: 'butter',
-        special_requests: 'Taze yağ kullanımı şart',
-      },
+      name: 'Ali Öztürk',
+      phone: '0536 567 89 01',
+      email: 'ali@example.com',
+      birthDate: new Date('1988-07-25'),
+      gender: 'Erkek',
+      address: 'Şişli, İstanbul',
     },
   });
+  console.log(`  ✅ Created patient: ${patient5.name}`);
 
-  const demand2 = await prisma.demand.create({
+  // Create Appointments
+  console.log('📅 Creating appointments...');
+  const appointment1 = await prisma.appointment.create({
     data: {
-      userId: receiver1.id,
-      categoryId: pilavCategoryId!,
-      title: 'Açılış Organizasyonu – Pilav & Helva',
-      description: 'Yeni iş yerimizin açılışı için toplu yemek organizasyonu. 800 kişilik pilav ve helva ikramı.',
-      location: 'Karşıyaka, İzmir',
-      latitude: 38.4606,
-      longitude: 27.1478,
-      budget: 12000,
-      images: [],
-      status: 'ACTIVE',
-      peopleCount: 800,
-      eventDate: new Date('2025-10-25'),
-      eventTime: '18:00',
-      isUrgent: false,
-      deadline: '1 hafta',
-      address: 'İş Merkezi, Karşıyaka, İzmir',
-      questionResponses: {
-        portion_count: 800,
-        pilav_type: 'vermicelli',
-        with_chicken: true,
-        chicken_type: 'mixed',
-        side_dishes: ['salad', 'ayran', 'bread'],
-        special_requests: 'Helal sertifikalı',
-      },
+      patientId: patient1.id,
+      doctorId: doctor1.id,
+      serviceId: service1.id,
+      name: patient1.name,
+      phone: patient1.phone,
+      email: patient1.email,
+      date: new Date('2024-03-15'),
+      time: '10:00',
+      serviceName: service1.title,
+      doctorName: doctor1.name,
+      notes: 'Düzenli kontrol',
+      status: 'Tamamlandı',
     },
   });
+  console.log(`  ✅ Created appointment: ${appointment1.id}`);
 
-  const demand3 = await prisma.demand.create({
+  const appointment2 = await prisma.appointment.create({
     data: {
-      userId: receiver2.id,
-      categoryId: asureCategoryId!,
-      title: 'Aşure Günü İkramı',
-      description: 'Aşure günü için 300 kişilik aşure ikramı yapılacak. Geleneksel tarif tercih ediyoruz.',
-      location: 'Bornova, İzmir',
-      latitude: 38.4637,
-      longitude: 27.2136,
-      budget: 9000,
-      images: [],
-      status: 'ACTIVE',
-      peopleCount: 300,
-      eventDate: new Date('2025-10-30'),
-      eventTime: '15:00',
-      isUrgent: true,
-      deadline: '2 gün',
-      address: 'Bornova Belediyesi, Bornova, İzmir',
-      questionResponses: {
-        portion_count: 300,
-        recipe_type: 'traditional',
-        ingredients: ['chickpea', 'bean', 'apricot', 'fig', 'walnut'],
-        container_type: 'plastic',
-        decoration: true,
-        special_requests: 'Geleneksel tarif',
-      },
+      patientId: patient2.id,
+      doctorId: doctor2.id,
+      serviceId: service2.id,
+      name: patient2.name,
+      phone: patient2.phone,
+      email: patient2.email,
+      date: new Date('2024-03-20'),
+      time: '14:30',
+      serviceName: service2.title,
+      doctorName: doctor2.name,
+      notes: 'Acil',
+      status: 'Bekliyor',
     },
   });
+  console.log(`  ✅ Created appointment: ${appointment2.id}`);
 
-  console.log('✅ Demands created');
-
-  // Create Offers
-  console.log('💼 Creating offers...');
-  const offer1 = await prisma.offer.create({
+  const appointment3 = await prisma.appointment.create({
     data: {
-      demandId: demand1.id,
-      providerId: provider3.id,
-      message: 'Geleneksel İzmir lokması yapıyoruz. 500 kişilik organizasyon için hazırız. Taze yağ ve kaliteli malzeme garantisi.',
-      price: 7500,
-      estimatedTime: '24 saat',
-      status: 'PENDING',
+      patientId: patient3.id,
+      doctorId: doctor3.id,
+      serviceId: service3.id,
+      name: patient3.name,
+      phone: patient3.phone,
+      email: patient3.email,
+      date: new Date('2024-03-25'),
+      time: '11:00',
+      serviceName: service3.title,
+      doctorName: doctor3.name,
+      status: 'Planlandı',
     },
   });
+  console.log(`  ✅ Created appointment: ${appointment3.id}`);
 
-  const offer2 = await prisma.offer.create({
+  const appointment4 = await prisma.appointment.create({
     data: {
-      demandId: demand2.id,
-      providerId: provider2.id,
-      message: 'Toplu yemek organizasyonunda 15 yıllık tecrübemiz var. 800 kişilik pilav ve helva ikramını rahatlıkla karşılayabiliriz.',
-      price: 11500,
-      estimatedTime: '1 hafta',
-      status: 'PENDING',
+      patientId: patient4.id,
+      doctorId: doctor4.id,
+      serviceId: service4.id,
+      name: patient4.name,
+      phone: patient4.phone,
+      email: patient4.email,
+      date: new Date('2024-03-18'),
+      time: '15:00',
+      serviceName: service4.title,
+      doctorName: doctor4.name,
+      status: 'Tamamlandı',
     },
   });
+  console.log(`  ✅ Created appointment: ${appointment4.id}`);
 
-  const offer3 = await prisma.offer.create({
+  const appointment5 = await prisma.appointment.create({
     data: {
-      demandId: demand3.id,
-      providerId: provider3.id,
-      message: 'Aşure günü için 300 kişilik geleneksel aşure yapabiliriz. Acil teslimat imkanımız var.',
-      price: 8500,
-      estimatedTime: '2 gün',
-      status: 'PENDING',
+      patientId: patient5.id,
+      doctorId: doctor1.id,
+      serviceId: service5.id,
+      name: patient5.name,
+      phone: patient5.phone,
+      email: patient5.email,
+      date: new Date('2024-03-22'),
+      time: '09:00',
+      serviceName: service5.title,
+      doctorName: doctor1.name,
+      status: 'Planlandı',
     },
   });
+  console.log(`  ✅ Created appointment: ${appointment5.id}`);
 
-  console.log('✅ Offers created');
+  // Create Testimonials
+  console.log('⭐ Creating testimonials...');
+  // Copy testimonial avatars to uploads directory
+  const testimAvatars = ['t1.jpg', 't2.jpg', 't3.jpg'];
+  const testimAvatarUrls: string[] = [];
+  
+  for (const avatar of testimAvatars) {
+    const sourcePath = path.join(process.cwd(), 'public', 'assets', 'imgs', 'testim', avatar);
+    const destPath = path.join(uploadsDir, `testim-${Date.now()}-${avatar}`);
+    
+    if (fs.existsSync(sourcePath)) {
+      try {
+        fs.copyFileSync(sourcePath, destPath);
+        testimAvatarUrls.push(`/uploads/image/${path.basename(destPath)}`);
+        console.log(`  ✅ Copied testimonial avatar: ${avatar}`);
+      } catch (error) {
+        console.log(`  ⚠️ Could not copy ${avatar}, using placeholder`);
+        testimAvatarUrls.push('/assets/imgs/testim/default-avatar.jpg');
+      }
+    } else {
+      testimAvatarUrls.push('/assets/imgs/testim/default-avatar.jpg');
+    }
+  }
 
-  // Create Reviews
-  console.log('⭐ Creating reviews...');
-  await prisma.review.create({
+  const testimonial1 = await prisma.testimonial.create({
     data: {
-      reviewerId: receiver1.id,
-      reviewedUserId: provider1.id,
+      patientName: 'Ahmet Yılmaz',
       rating: 5,
-      comment: 'Çok profesyonel ve hızlı çalışıyor. Kesinlikle tavsiye ederim.',
+      comment: 'Klinikte aldığım hizmet gerçekten çok profesyoneldi. Doktorlar çok ilgili ve deneyimli. Tedavi sürecim boyunca kendimi güvende hissettim.',
+      avatarUrl: testimAvatarUrls[0] || '/assets/imgs/testim/default-avatar.jpg',
+      date: new Date('2024-03-10'),
+      isActive: true,
+      userId: admin.id,
     },
   });
+  console.log(`  ✅ Created testimonial: ${testimonial1.id}`);
 
-  await prisma.review.create({
+  const testimonial2 = await prisma.testimonial.create({
     data: {
-      reviewerId: receiver2.id,
-      reviewedUserId: provider2.id,
-      rating: 4,
-      comment: 'İyi iş çıkardı, işini biliyor.',
+      patientName: 'Ayşe Demir',
+      rating: 5,
+      comment: 'Randevu alma süreci çok kolaydı ve bekleme süresi minimumdu. Doktorun verdiği bilgiler çok netti ve tedavi sonrası takip mükemmeldi.',
+      avatarUrl: testimAvatarUrls[1] || '/assets/imgs/testim/default-avatar.jpg',
+      date: new Date('2024-03-05'),
+      isActive: true,
     },
   });
+  console.log(`  ✅ Created testimonial: ${testimonial2.id}`);
 
-  console.log('✅ Reviews created');
-
-  // Create Notifications
-  console.log('🔔 Creating notifications...');
-  await prisma.notification.create({
+  const testimonial3 = await prisma.testimonial.create({
     data: {
-      userId: receiver1.id,
-      title: 'Yeni Teklif',
-      message: `${provider1.name} talebinize teklif verdi`,
-      type: 'NEW_OFFER',
+      patientName: 'Mehmet Kaya',
+      rating: 5,
+      comment: 'Tüm personel çok nazik ve profesyonel. Kliniğin temizliği ve hijyeni mükemmel. Kesinlikle tavsiye ederim.',
+      avatarUrl: testimAvatarUrls[2] || '/assets/imgs/testim/default-avatar.jpg',
+      date: new Date('2024-02-28'),
+      isActive: true,
+    },
+  });
+  console.log(`  ✅ Created testimonial: ${testimonial3.id}`);
+
+  const testimonial4 = await prisma.testimonial.create({
+    data: {
+      patientName: 'Fatma Şahin',
+      rating: 5,
+      comment: 'Mükemmel bir hizmet aldım. Çok memnun kaldım!',
+      date: new Date('2024-03-12'),
+      isActive: true,
+    },
+  });
+  console.log(`  ✅ Created testimonial: ${testimonial4.id}`);
+
+  const testimonial5 = await prisma.testimonial.create({
+    data: {
+      patientName: 'Ali Öztürk',
+      rating: 5,
+      comment: 'Profesyonel ekip, temiz ortam. Kesinlikle tavsiye ederim.',
+      date: new Date('2024-03-08'),
+      isActive: true,
+    },
+  });
+  console.log(`  ✅ Created testimonial: ${testimonial5.id}`);
+
+  // Create FAQs
+  console.log('❓ Creating FAQs...');
+  const faq1 = await prisma.fAQ.create({
+    data: {
+      question: 'Randevu nasıl alabilirim?',
+      answer: 'Randevu almak için web sitemizden online randevu formunu doldurabilir veya telefon ile iletişime geçebilirsiniz.',
+      order: 1,
+      isActive: true,
+    },
+  });
+  console.log(`  ✅ Created FAQ: ${faq1.id}`);
+
+  const faq2 = await prisma.fAQ.create({
+    data: {
+      question: 'Hangi ödeme yöntemlerini kabul ediyorsunuz?',
+      answer: 'Nakit, kredi kartı ve banka kartı ile ödeme yapabilirsiniz.',
+      order: 2,
+      isActive: true,
+    },
+  });
+  console.log(`  ✅ Created FAQ: ${faq2.id}`);
+
+  const faq3 = await prisma.fAQ.create({
+    data: {
+      question: 'Sigorta kapsamında mı?',
+      answer: 'Evet, birçok sigorta şirketi ile anlaşmamız bulunmaktadır.',
+      order: 3,
+      isActive: true,
+    },
+  });
+  console.log(`  ✅ Created FAQ: ${faq3.id}`);
+
+  const faq4 = await prisma.fAQ.create({
+    data: {
+      question: 'Randevu iptal edebilir miyim?',
+      answer: 'Evet, randevunuzu en az 24 saat önceden iptal edebilirsiniz.',
+      order: 4,
+      isActive: true,
+    },
+  });
+  console.log(`  ✅ Created FAQ: ${faq4.id}`);
+
+  const faq5 = await prisma.fAQ.create({
+    data: {
+      question: 'Acil durumlarda ne yapmalıyım?',
+      answer: 'Acil durumlarda 7/24 hizmet veren acil servisimizden yararlanabilirsiniz.',
+      order: 5,
+      isActive: true,
+    },
+  });
+  console.log(`  ✅ Created FAQ: ${faq5.id}`);
+
+  // Create BeforeAfter
+  console.log('📸 Creating before-after items...');
+  
+  // Copy before-after images to uploads directory
+  const beforeAfterImages = [
+    { before: 'works/1/1.jpg', after: 'works/1/1.jpg' },
+    { before: 'works/1/2.jpg', after: 'works/1/2.jpg' },
+    { before: 'works/1/3.jpg', after: 'works/1/3.jpg' },
+    { before: 'works/1/4.jpg', after: 'works/1/4.jpg' },
+    { before: 'works/1/5.jpg', after: 'works/1/5.jpg' },
+  ];
+  const beforeAfterImageUrls: Array<{ before: string; after: string }> = [];
+  
+  for (const img of beforeAfterImages) {
+    const beforeSource = path.join(process.cwd(), 'public', 'assets', 'imgs', img.before);
+    const afterSource = path.join(process.cwd(), 'public', 'assets', 'imgs', img.after);
+    const beforeDest = path.join(uploadsDir, `before-${Date.now()}-${path.basename(img.before)}`);
+    const afterDest = path.join(uploadsDir, `after-${Date.now()}-${path.basename(img.after)}`);
+    
+    let beforeUrl = '/assets/imgs/works/default.jpg';
+    let afterUrl = '/assets/imgs/works/default.jpg';
+    
+    if (fs.existsSync(beforeSource)) {
+      try {
+        fs.copyFileSync(beforeSource, beforeDest);
+        beforeUrl = `/uploads/image/${path.basename(beforeDest)}`;
+        console.log(`  ✅ Copied before image: ${img.before}`);
+      } catch (error) {
+        console.log(`  ⚠️ Could not copy before ${img.before}`);
+      }
+    }
+    
+    if (fs.existsSync(afterSource)) {
+      try {
+        fs.copyFileSync(afterSource, afterDest);
+        afterUrl = `/uploads/image/${path.basename(afterDest)}`;
+        console.log(`  ✅ Copied after image: ${img.after}`);
+      } catch (error) {
+        console.log(`  ⚠️ Could not copy after ${img.after}`);
+      }
+    }
+    
+    beforeAfterImageUrls.push({ before: beforeUrl, after: afterUrl });
+  }
+
+  const beforeAfter1 = await prisma.beforeAfter.create({
+    data: {
+      title: 'Diş Temizliği Öncesi - Sonrası',
+      description: 'Profesyonel diş temizliği ile sağlıklı ve parlak bir gülümseme. Modern tekniklerle ağrısız ve etkili sonuçlar.',
+      beforeImage: beforeAfterImageUrls[0].before,
+      afterImage: beforeAfterImageUrls[0].after,
+      order: 1,
+      isActive: true,
+    },
+  });
+  console.log(`  ✅ Created before-after: ${beforeAfter1.id}`);
+
+  const beforeAfter2 = await prisma.beforeAfter.create({
+    data: {
+      title: 'Estetik Dolgu İşlemi',
+      description: 'Doğal görünümlü estetik dolgu işlemleri. Görünmez ve dayanıklı çözümlerle mükemmel sonuçlar.',
+      beforeImage: beforeAfterImageUrls[1].before,
+      afterImage: beforeAfterImageUrls[1].after,
+      order: 2,
+      isActive: true,
+    },
+  });
+  console.log(`  ✅ Created before-after: ${beforeAfter2.id}`);
+
+  const beforeAfter3 = await prisma.beforeAfter.create({
+    data: {
+      title: 'Kanal Tedavisi Sonuçları',
+      description: 'Uzman kanal tedavisi ile diş kurtarma. Ağrısız ve başarılı tedavi süreçleri.',
+      beforeImage: beforeAfterImageUrls[2].before,
+      afterImage: beforeAfterImageUrls[2].after,
+      order: 3,
+      isActive: true,
+    },
+  });
+  console.log(`  ✅ Created before-after: ${beforeAfter3.id}`);
+
+  const beforeAfter4 = await prisma.beforeAfter.create({
+    data: {
+      title: 'Ortodontik Tedavi',
+      description: 'Modern ortodontik tedavi yöntemleri ile düzgün diş yapısı. Görünmez ve konforlu çözümler.',
+      beforeImage: beforeAfterImageUrls[3].before,
+      afterImage: beforeAfterImageUrls[3].after,
+      order: 4,
+      isActive: true,
+    },
+  });
+  console.log(`  ✅ Created before-after: ${beforeAfter4.id}`);
+
+  const beforeAfter5 = await prisma.beforeAfter.create({
+    data: {
+      title: 'İmplant Uygulaması',
+      description: 'Kalıcı ve doğal görünümlü implant çözümleri. Uzun ömürlü ve güvenilir sonuçlar.',
+      beforeImage: beforeAfterImageUrls[4].before,
+      afterImage: beforeAfterImageUrls[4].after,
+      order: 5,
+      isActive: true,
+    },
+  });
+  console.log(`  ✅ Created before-after: ${beforeAfter5.id}`);
+
+  // Create sample contact channels
+  console.log('📞 Creating contact channels...');
+  const contactChannels = await Promise.all([
+    prisma.contactChannel.create({
       data: {
-        offerId: offer1.id,
-        demandId: demand1.id,
+        type: 'phone',
+        label: 'Telefon',
+        value: '0216 123 45 67',
+        order: 1,
+        isActive: true,
       },
-    },
-  });
-
-  await prisma.notification.create({
-    data: {
-      userId: receiver1.id,
-      title: 'Yeni Teklif',
-      message: `${provider2.name} talebinize teklif verdi`,
-      type: 'NEW_OFFER',
+    }),
+    prisma.contactChannel.create({
       data: {
-        offerId: offer2.id,
-        demandId: demand2.id,
+        type: 'whatsapp',
+        label: 'WhatsApp',
+        value: '905321234567',
+        order: 2,
+        isActive: true,
       },
+    }),
+    prisma.contactChannel.create({
+      data: {
+        type: 'email',
+        label: 'Email',
+        value: 'info@klinik.com',
+        order: 3,
+        isActive: true,
+      },
+    }),
+    prisma.contactChannel.create({
+      data: {
+        type: 'address',
+        label: 'Adres',
+        value: 'İstanbul, Kadıköy',
+        order: 4,
+        isActive: true,
+      },
+    }),
+    prisma.contactChannel.create({
+      data: {
+        type: 'working_hours',
+        label: 'Çalışma Saatleri',
+        value: 'Pazartesi - Cuma: 09:00 - 18:00\nCumartesi: 09:00 - 14:00',
+        order: 5,
+        isActive: true,
+      },
+    }),
+    prisma.contactChannel.create({
+      data: {
+        type: 'social_media',
+        label: 'Facebook',
+        value: 'https://facebook.com/klinik',
+        icon: 'fab fa-facebook-f',
+        order: 6,
+        isActive: true,
+      },
+    }),
+    prisma.contactChannel.create({
+      data: {
+        type: 'social_media',
+        label: 'Instagram',
+        value: 'https://instagram.com/klinik',
+        icon: 'fab fa-instagram',
+        order: 7,
+        isActive: true,
+      },
+    }),
+    prisma.contactChannel.create({
+      data: {
+        type: 'social_media',
+        label: 'LinkedIn',
+        value: 'https://linkedin.com/company/klinik',
+        icon: 'fab fa-linkedin-in',
+        order: 8,
+        isActive: true,
+      },
+    }),
+    prisma.contactChannel.create({
+      data: {
+        type: 'social_media',
+        label: 'Twitter',
+        value: 'https://twitter.com/klinik',
+        icon: 'fab fa-twitter',
+        order: 9,
+        isActive: true,
+      },
+    }),
+  ]);
+  console.log(`✅ Created ${contactChannels.length} contact channels`);
+
+  // Create sample newsletter subscriptions
+  console.log('📧 Creating newsletter subscriptions...');
+  const newsletters = await Promise.all([
+    prisma.newsletter.create({
+      data: {
+        email: 'user1@example.com',
+        name: 'Ahmet Yılmaz',
+        isActive: true,
+      },
+    }),
+    prisma.newsletter.create({
+      data: {
+        email: 'user2@example.com',
+        name: 'Ayşe Demir',
+        isActive: true,
+      },
+    }),
+    prisma.newsletter.create({
+      data: {
+        email: 'user3@example.com',
+        name: 'Mehmet Kaya',
+        isActive: true,
+      },
+    }),
+    prisma.newsletter.create({
+      data: {
+        email: 'user4@example.com',
+        name: 'Fatma Şahin',
+        isActive: true,
+      },
+    }),
+    prisma.newsletter.create({
+      data: {
+        email: 'user5@example.com',
+        name: 'Ali Öztürk',
+        isActive: false,
+        unsubscribedAt: new Date('2024-02-15'),
+      },
+    }),
+    prisma.newsletter.create({
+      data: {
+        email: 'user6@example.com',
+        name: 'Zeynep Yıldız',
+        isActive: true,
+      },
+    }),
+  ]);
+  console.log(`✅ Created ${newsletters.length} newsletter subscriptions`);
+
+  // Create Logos
+  console.log('🖼️ Creating logos...');
+  
+  // Copy logo.png to uploads directory if it exists
+  const logoSource = path.join(process.cwd(), 'public', 'logo.png');
+  let logoUrl = '/uploads/image/logo-seed.png';
+  
+  if (fs.existsSync(logoSource)) {
+    const logoDest = path.join(uploadsDir, 'logo-seed.png');
+    try {
+      fs.copyFileSync(logoSource, logoDest);
+      console.log('  ✅ Copied logo.png to uploads directory');
+    } catch (error) {
+      console.log('  ⚠️ Could not copy logo, using placeholder');
+      logoUrl = '/assets/imgs/logo-light.png';
+    }
+  } else {
+    // If logo doesn't exist, use a placeholder URL
+    logoUrl = '/assets/imgs/logo-light.png';
+    console.log('  ⚠️ Logo file not found, using placeholder');
+  }
+
+  const headerLogo = await prisma.logo.upsert({
+    where: { type: 'header' },
+    update: {
+      url: logoUrl,
+      name: 'Header Logo',
+      alt: 'Klinik Logo',
+      isActive: true,
+    },
+    create: {
+      type: 'header',
+      name: 'Header Logo',
+      url: logoUrl,
+      alt: 'Klinik Logo',
+      isActive: true,
     },
   });
+  console.log(`  ✅ Created header logo: ${headerLogo.id}`);
 
-  console.log('✅ Notifications created');
+  const footerLogo = await prisma.logo.upsert({
+    where: { type: 'footer' },
+    update: {
+      url: logoUrl,
+      name: 'Footer Logo',
+      alt: 'Klinik Logo',
+      isActive: true,
+    },
+    create: {
+      type: 'footer',
+      name: 'Footer Logo',
+      url: logoUrl,
+      alt: 'Klinik Logo',
+      isActive: true,
+    },
+  });
+  console.log(`  ✅ Created footer logo: ${footerLogo.id}`);
 
-  // Create Charity Activities
-  console.log('❤️ Creating charity activities...');
+  const faviconLogo = await prisma.logo.upsert({
+    where: { type: 'favicon' },
+    update: {
+      url: logoUrl,
+      name: 'Favicon',
+      alt: 'Klinik Favicon',
+      isActive: true,
+    },
+    create: {
+      type: 'favicon',
+      name: 'Favicon',
+      url: logoUrl,
+      alt: 'Klinik Favicon',
+      isActive: true,
+    },
+  });
+  console.log(`  ✅ Created favicon: ${faviconLogo.id}`);
 
-  // İstanbul'da hayır aktiviteleri
-  const hayirYemekCategoryId = categoryMap.get('hayir_yemek');
-  await prisma.charityActivity.create({
+  // Create Home Intro
+  console.log('🏠 Creating home intro...');
+  const homeIntro = await prisma.homeIntro.create({
     data: {
-      providerId: provider1.id,
-      categoryId: hayirYemekCategoryId!,
-      title: 'İhtiyaç Sahiplerine Sıcak Yemek Dağıtımı',
-      description: 'Her gün 200 kişilik sıcak yemek dağıtımı yapıyoruz. İhtiyaç sahiplerine ücretsiz yemek servisi.',
-      latitude: 41.0082,
-      longitude: 28.9784,
-      address: 'Kadıköy Meydanı, Kadıköy, İstanbul',
-      estimatedEndTime: new Date('2025-12-31T18:00:00'),
+      smallTitle: 'Modern Sağlık Hizmetleri',
+      mainTitle: 'Sağlığınız İçin Yanınızdayız',
+      subTitle: 'Profesyonel ve Güvenilir Sağlık Hizmetleri',
+      description: 'Sağlığınız bizim önceliğimiz. Modern tıbbi teknoloji ve deneyimli ekibimizle size en iyi hizmeti sunmak için buradayız. Randevu alın, sağlığınızı güvence altına alın.',
+      buttonText: 'Randevu Al',
+      buttonLink: '/randevu-al',
+      backgroundImage: '/assets/imgs/header/p0.jpg',
+      isActive: true,
     },
   });
+  console.log(`  ✅ Created home intro: ${homeIntro.id}`);
 
-  await prisma.charityActivity.create({
+  // Create Marquee Items
+  console.log('📜 Creating marquee items...');
+  const marqueeItems = await Promise.all([
+    prisma.marqueeItem.create({
+      data: { text: 'Genel Muayene', order: 1, isActive: true },
+    }),
+    prisma.marqueeItem.create({
+      data: { text: 'Özel Tedaviler', order: 2, isActive: true },
+    }),
+    prisma.marqueeItem.create({
+      data: { text: 'Konsültasyon', order: 3, isActive: true },
+    }),
+    prisma.marqueeItem.create({
+      data: { text: 'Kontrol Muayenesi', order: 4, isActive: true },
+    }),
+    prisma.marqueeItem.create({
+      data: { text: 'Acil Hizmetler', order: 5, isActive: true },
+    }),
+    prisma.marqueeItem.create({
+      data: { text: 'Sağlık Taraması', order: 6, isActive: true },
+    }),
+    prisma.marqueeItem.create({
+      data: { text: 'Teşhis Hizmetleri', order: 7, isActive: true },
+    }),
+    prisma.marqueeItem.create({
+      data: { text: 'Tedavi Planlaması', order: 8, isActive: true },
+    }),
+  ]);
+  console.log(`  ✅ Created ${marqueeItems.length} marquee items`);
+
+  // Create Home About
+  console.log('📖 Creating home about...');
+  const homeAbout = await prisma.homeAbout.create({
     data: {
-      providerId: provider2.id,
-      categoryId: pilavCategoryId!,
-      title: 'Cuma Günü Pilav Dağıtımı',
-      description: 'Her Cuma günü cami önünde 500 kişilik pilav dağıtımı. Helal ve taze malzeme ile hazırlanıyor.',
-      latitude: 41.0123,
-      longitude: 28.9856,
-      address: 'Üsküdar Camii, Üsküdar, İstanbul',
-      estimatedEndTime: new Date('2025-12-31T14:00:00'),
+      image: '/assets/imgs/header/p2.jpg',
+      smallTitle: 'Hakkımızda',
+      title: 'Modern Tıbbi Teknoloji ve Deneyimli Ekip ile Sağlığınız İçin Hizmetinizdeyiz',
+      content: 'Klinik olarak, hasta memnuniyetini ön planda tutarak, modern tıbbi teknoloji ve deneyimli ekibimizle en kaliteli sağlık hizmetini sunmaktayız. Yılların deneyimi ve sürekli gelişen tıp bilimi ile hastalarımıza en iyi tedavi seçeneklerini sunuyoruz.\n\nMisyonumuz, her hasta için kişiselleştirilmiş tedavi planları oluşturmak ve sağlık yolculuğunuzda yanınızda olmaktır. Vizyonumuz ise, toplum sağlığını iyileştirmek ve herkes için erişilebilir, kaliteli sağlık hizmeti sunmaktır.',
+      isActive: true,
     },
   });
+  console.log(`  ✅ Created home about: ${homeAbout.id}`);
 
-  await prisma.charityActivity.create({
+  // Create Skills
+  console.log('💪 Creating skills...');
+  const skills = await Promise.all([
+    prisma.skill.create({
+      data: { percentage: 98, title: 'Genel Muayene', order: 1, isActive: true },
+    }),
+    prisma.skill.create({
+      data: { percentage: 95, title: 'Özel Tedaviler', order: 2, isActive: true },
+    }),
+    prisma.skill.create({
+      data: { percentage: 97, title: 'Teşhis Hizmetleri', order: 3, isActive: true },
+    }),
+    prisma.skill.create({
+      data: { percentage: 96, title: 'Konsültasyon', order: 4, isActive: true },
+    }),
+    prisma.skill.create({
+      data: { percentage: 94, title: 'Acil Hizmetler', order: 5, isActive: true },
+    }),
+    prisma.skill.create({
+      data: { percentage: 99, title: 'Hasta Memnuniyeti', order: 6, isActive: true },
+    }),
+  ]);
+  console.log(`  ✅ Created ${skills.length} skills`);
+
+  // Create Marquee2 Items
+  console.log('📜 Creating marquee2 items...');
+  const marquee2Items = await Promise.all([
+    prisma.marquee2Item.create({
+      data: { text: 'Get In Touch', order: 1, isActive: true },
+    }),
+    prisma.marquee2Item.create({
+      data: { text: 'Contact Us', order: 2, isActive: true },
+    }),
+  ]);
+  console.log(`  ✅ Created ${marquee2Items.length} marquee2 items`);
+
+  // Create About Page Intro
+  console.log('📄 Creating about page intro...');
+  const aboutPageIntro = await prisma.aboutPageIntro.create({
     data: {
-      providerId: provider3.id,
-      categoryId: lokmaCategoryId!,
-      title: 'Mevlit Lokması Dağıtımı',
-      description: 'Rahmetli vatandaşlarımızın ruhu için lokma döküyoruz. Her hafta 300 kişilik lokma ikramı.',
-      latitude: 41.0056,
-      longitude: 28.9723,
-      address: 'Beşiktaş Meydanı, Beşiktaş, İstanbul',
-      estimatedEndTime: new Date('2025-12-31T16:00:00'),
+      image: '/assets/imgs/intro/i1.jpg',
+      title: 'Modern tıbbi teknoloji ve deneyimli ekibimizle sağlığınız için yanınızdayız.',
+      content: 'Klinik olarak, hasta memnuniyetini ön planda tutarak, modern tıbbi teknoloji ve deneyimli ekibimizle en kaliteli sağlık hizmetini sunmaktayız. Yılların deneyimi ve sürekli gelişen tıp bilimi ile hastalarımıza en iyi tedavi seçeneklerini sunuyoruz.\n\nMisyonumuz, her hasta için kişiselleştirilmiş tedavi planları oluşturmak ve sağlık yolculuğunuzda yanınızda olmaktır. Vizyonumuz ise, toplum sağlığını iyileştirmek ve herkes için erişilebilir, kaliteli sağlık hizmeti sunmaktır.',
+      isActive: true,
     },
   });
+  console.log(`  ✅ Created about page intro: ${aboutPageIntro.id}`);
 
-  // Ankara'da hayır aktiviteleri
-  await prisma.charityActivity.create({
+  // Create Contact Map
+  console.log('🗺️ Creating contact map...');
+  const contactMap = await prisma.contactMap.create({
     data: {
-      providerId: provider2.id,
-      categoryId: helvaCategoryId!,
-      title: 'Haftalık Helva Dağıtımı',
-      description: 'Her hafta sonu 400 kişilik helva dağıtımı. Geleneksel tarif ile hazırlanıyor.',
-      latitude: 39.9334,
-      longitude: 32.8597,
-      address: 'Kızılay Meydanı, Çankaya, Ankara',
-      estimatedEndTime: new Date('2025-12-31T15:00:00'),
+      iframeCode: '<iframe id="gmap_canvas" src="https://maps.google.com/maps?q=hollwood&t=&z=11&ie=UTF8&iwloc=&output=embed"></iframe>',
+      isActive: true,
     },
   });
-
-  await prisma.charityActivity.create({
-    data: {
-      providerId: provider1.id,
-      categoryId: hayirYemekCategoryId!,
-      title: 'Günlük Yemek Servisi',
-      description: 'Her gün öğle yemeği servisi. İhtiyaç sahiplerine sıcak yemek ikramı.',
-      latitude: 39.9208,
-      longitude: 32.8541,
-      address: 'Ulus Meydanı, Altındağ, Ankara',
-      estimatedEndTime: new Date('2025-12-31T13:00:00'),
-    },
-  });
-
-  // İzmir Buca'da hayır aktiviteleri
-  await prisma.charityActivity.create({
-    data: {
-      providerId: provider3.id,
-      categoryId: asureCategoryId!,
-      title: 'Aşure Günü Özel Dağıtım',
-      description: 'Aşure günü için 600 kişilik aşure hazırlıyoruz. Geleneksel tarif ile.',
-      latitude: 38.3950,
-      longitude: 27.1700,
-      address: 'Buca Belediyesi Önü, Buca Merkez, İzmir',
-      estimatedEndTime: new Date('2025-12-31T17:00:00'),
-    },
-  });
-
-  await prisma.charityActivity.create({
-    data: {
-      providerId: provider1.id,
-      categoryId: pilavCategoryId!,
-      title: 'Hafta Sonu Pilav İkramı',
-      description: 'Her hafta sonu 350 kişilik pilav ikramı. Cami avlusunda dağıtım yapılıyor.',
-      latitude: 38.4100,
-      longitude: 27.1850,
-      address: 'Şirinyer Camii, Şirinyer, Buca, İzmir',
-      estimatedEndTime: new Date('2025-12-31T14:30:00'),
-    },
-  });
-
-  await prisma.charityActivity.create({
-    data: {
-      providerId: provider2.id,
-      categoryId: lokmaCategoryId!,
-      title: 'Cuma Günü Lokma Dağıtımı',
-      description: 'Her Cuma günü 400 kişilik lokma döküyoruz. Taze yağ ve kaliteli malzeme kullanıyoruz.',
-      latitude: 38.4000,
-      longitude: 27.1600,
-      address: 'Kaynaklar Mahallesi, Buca, İzmir',
-      estimatedEndTime: new Date('2025-12-31T15:00:00'),
-    },
-  });
-
-  await prisma.charityActivity.create({
-    data: {
-      providerId: provider1.id,
-      categoryId: helvaCategoryId!,
-      title: 'Günlük Helva İkramı',
-      description: 'Her gün 200 kişilik helva ikramı. İhtiyaç sahiplerine ücretsiz dağıtım.',
-      latitude: 38.3850,
-      longitude: 27.1750,
-      address: 'Hasanağa Mahallesi, Buca, İzmir',
-      estimatedEndTime: new Date('2025-12-31T16:00:00'),
-    },
-  });
-
-  await prisma.charityActivity.create({
-    data: {
-      providerId: provider3.id,
-      categoryId: hayirYemekCategoryId!,
-      title: 'Öğle Yemeği Servisi',
-      description: 'Her gün öğle saatlerinde 300 kişilik sıcak yemek servisi. İhtiyaç sahiplerine ücretsiz.',
-      latitude: 38.4050,
-      longitude: 27.1550,
-      address: 'Kozağaç Mahallesi, Buca, İzmir',
-      estimatedEndTime: new Date('2025-12-31T13:00:00'),
-    },
-  });
-
-  await prisma.charityActivity.create({
-    data: {
-      providerId: provider2.id,
-      categoryId: pilavCategoryId!,
-      title: 'Haftalık Pilav Dağıtımı',
-      description: 'Her hafta 500 kişilik pilav dağıtımı. Helal ve taze malzeme ile hazırlanıyor.',
-      latitude: 38.3900,
-      longitude: 27.1800,
-      address: 'Buca Kültür Merkezi Önü, Buca, İzmir',
-      estimatedEndTime: new Date('2025-12-31T14:00:00'),
-    },
-  });
-
-  // Bursa'da hayır aktiviteleri
-  await prisma.charityActivity.create({
-    data: {
-      providerId: provider2.id,
-      categoryId: lokmaCategoryId!,
-      title: 'Cuma Lokması',
-      description: 'Her Cuma günü 250 kişilik lokma döküyoruz. Taze ve kaliteli malzeme kullanıyoruz.',
-      latitude: 40.1826,
-      longitude: 29.0665,
-      address: 'Osmangazi Camii, Osmangazi, Bursa',
-      estimatedEndTime: new Date('2025-12-31T15:30:00'),
-    },
-  });
-
-  await prisma.charityActivity.create({
-    data: {
-      providerId: provider3.id,
-      categoryId: helvaCategoryId!,
-      title: 'Günlük Helva İkramı',
-      description: 'Her gün 150 kişilik helva ikramı. İhtiyaç sahiplerine ücretsiz dağıtım.',
-      latitude: 40.1885,
-      longitude: 29.0610,
-      address: 'Nilüfer Belediyesi Önü, Nilüfer, Bursa',
-      estimatedEndTime: new Date('2025-12-31T16:00:00'),
-    },
-  });
-
-  console.log('✅ Charity activities created');
+  console.log(`  ✅ Created contact map: ${contactMap.id}`);
 
   console.log('🎉 Seeding completed successfully!');
+  console.log('\n📋 Admin Credentials:');
+  console.log('   Email: admin@klinik.com');
+  console.log('   Password: admin123');
 }
 
 main()

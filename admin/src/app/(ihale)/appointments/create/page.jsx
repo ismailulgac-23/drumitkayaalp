@@ -1,35 +1,84 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import ComponentCard from "@/components/common/ComponentCard";
 import Button from "@/components/ui/button/Button";
+import axios from "@/axios";
 
 export default function CreateAppointment() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [doctors, setDoctors] = useState([]);
+    const [services, setServices] = useState([]);
     const [formData, setFormData] = useState({
-        patientId: "",
-        patientName: "",
-        patientPhone: "",
+        name: "",
+        phone: "",
+        email: "",
         date: "",
         time: "",
-        doctor: "",
-        service: "",
+        doctorId: "",
+        serviceId: "",
+        doctorName: "",
+        serviceName: "",
         status: "Planlandı",
         notes: "",
     });
+
+    useEffect(() => {
+        fetchDoctors();
+        fetchServices();
+    }, []);
+
+    const fetchDoctors = async () => {
+        try {
+            const response = await axios.get('/doctors');
+            if (response.data.success) {
+                setDoctors(response.data.data || []);
+            }
+        } catch (error) {
+            console.error('Error fetching doctors:', error);
+        }
+    };
+
+    const fetchServices = async () => {
+        try {
+            const response = await axios.get('/services');
+            if (response.data.success) {
+                setServices(response.data.data || []);
+            }
+        } catch (error) {
+            console.error('Error fetching services:', error);
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         
-        // Simulate API call
-        setTimeout(() => {
+        try {
+            const appointmentData = {
+                name: formData.name,
+                phone: formData.phone,
+                email: formData.email || undefined,
+                date: formData.date,
+                time: formData.time,
+                doctor: formData.doctorName || (formData.doctorId ? doctors.find(d => d.id === formData.doctorId)?.name : undefined),
+                service: formData.serviceName || (formData.serviceId ? services.find(s => s.id === formData.serviceId)?.title : undefined),
+                notes: formData.notes || undefined,
+            };
+
+            const response = await axios.post('/appointments', appointmentData);
+            if (response.data.success) {
+                alert("Randevu başarıyla oluşturuldu!");
+                router.push("/appointments");
+            }
+        } catch (error) {
+            console.error('Error creating appointment:', error);
+            alert(error.response?.data?.message || 'Randevu oluşturulurken bir hata oluştu');
+        } finally {
             setLoading(false);
-            alert("Randevu başarıyla oluşturuldu!");
-            router.push("/appointments");
-        }, 1000);
+        }
     };
 
     const handleChange = (e) => {
@@ -57,8 +106,8 @@ export default function CreateAppointment() {
                                 </label>
                                 <input
                                     type="text"
-                                    name="patientName"
-                                    value={formData.patientName}
+                                    name="name"
+                                    value={formData.name}
                                     onChange={handleChange}
                                     required
                                     className="w-full rounded-md border border-input bg-background px-3 py-2"
@@ -72,12 +121,26 @@ export default function CreateAppointment() {
                                 </label>
                                 <input
                                     type="tel"
-                                    name="patientPhone"
-                                    value={formData.patientPhone}
+                                    name="phone"
+                                    value={formData.phone}
                                     onChange={handleChange}
                                     required
                                     className="w-full rounded-md border border-input bg-background px-3 py-2"
                                     placeholder="0532 123 45 67"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Email
+                                </label>
+                                <input
+                                    type="email"
+                                    name="email"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    className="w-full rounded-md border border-input bg-background px-3 py-2"
+                                    placeholder="email@example.com"
                                 />
                             </div>
 
@@ -111,38 +174,49 @@ export default function CreateAppointment() {
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Doktor <span className="text-red-500">*</span>
+                                    Doktor
                                 </label>
                                 <select
-                                    name="doctor"
-                                    value={formData.doctor}
-                                    onChange={handleChange}
-                                    required
+                                    name="doctorId"
+                                    value={formData.doctorId}
+                                    onChange={(e) => {
+                                        const selectedDoctor = doctors.find(d => d.id === e.target.value);
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            doctorId: e.target.value,
+                                            doctorName: selectedDoctor?.name || ''
+                                        }));
+                                    }}
                                     className="w-full rounded-md border border-input bg-background px-3 py-2"
                                 >
                                     <option value="">Seçiniz</option>
-                                    <option value="Dr. Mehmet Öz">Dr. Mehmet Öz</option>
-                                    <option value="Dr. Ayşe Demir">Dr. Ayşe Demir</option>
-                                    <option value="Dr. Ali Yılmaz">Dr. Ali Yılmaz</option>
+                                    {doctors.map(doctor => (
+                                        <option key={doctor.id} value={doctor.id}>{doctor.name}</option>
+                                    ))}
                                 </select>
                             </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Hizmet <span className="text-red-500">*</span>
+                                    Hizmet
                                 </label>
                                 <select
-                                    name="service"
-                                    value={formData.service}
-                                    onChange={handleChange}
-                                    required
+                                    name="serviceId"
+                                    value={formData.serviceId}
+                                    onChange={(e) => {
+                                        const selectedService = services.find(s => s.id === e.target.value);
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            serviceId: e.target.value,
+                                            serviceName: selectedService?.title || ''
+                                        }));
+                                    }}
                                     className="w-full rounded-md border border-input bg-background px-3 py-2"
                                 >
                                     <option value="">Seçiniz</option>
-                                    <option value="Kontrol">Kontrol</option>
-                                    <option value="Tedavi">Tedavi</option>
-                                    <option value="Muayene">Muayene</option>
-                                    <option value="Konsültasyon">Konsültasyon</option>
+                                    {services.map(service => (
+                                        <option key={service.id} value={service.id}>{service.title}</option>
+                                    ))}
                                 </select>
                             </div>
 
@@ -199,4 +273,3 @@ export default function CreateAppointment() {
         </div>
     );
 }
-

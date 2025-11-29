@@ -1,8 +1,9 @@
 'use client';
 import initIsotope from '@/common/initIsotope';
-import React, { useEffect, useLayoutEffect } from 'react';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { getImageUrl } from '@/common/imageHelper';
 
 function Portfolio() {
   useLayoutEffect(() => {
@@ -52,54 +53,32 @@ function Portfolio() {
     };
   }, []);
 
+  const [beforeAfterCases, setBeforeAfterCases] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    initIsotope();
+    fetchBeforeAfter();
   }, []);
-  
-  const beforeAfterCases = [
-    {
-      category: 'temizlik',
-      title: 'Diş Temizliği Öncesi - Sonrası',
-      description: 'Profesyonel diş temizliği ile sağlıklı ve parlak bir gülümseme',
-      image: '/assets/imgs/works/2/1.jpg',
-      link: '/project-details'
-    },
-    {
-      category: 'estetik',
-      title: 'Estetik Dolgu İşlemi',
-      description: 'Doğal görünümlü estetik dolgu işlemleri',
-      image: '/assets/imgs/works/2/2.jpg',
-      link: '/project-details'
-    },
-    {
-      category: 'tedavi',
-      title: 'Kanal Tedavisi Sonuçları',
-      description: 'Uzman kanal tedavisi ile diş kurtarma',
-      image: '/assets/imgs/works/2/3.jpg',
-      link: '/project-details'
-    },
-    {
-      category: 'ortodonti',
-      title: 'Ortodontik Tedavi',
-      description: 'Modern ortodontik tedavi yöntemleri ile düzgün diş yapısı',
-      image: '/assets/imgs/works/2/4.jpg',
-      link: '/project-details'
-    },
-    {
-      category: 'implant',
-      title: 'İmplant Uygulaması',
-      description: 'Kalıcı ve doğal görünümlü implant çözümleri',
-      image: '/assets/imgs/works/2/5.jpg',
-      link: '/project-details'
-    },
-    {
-      category: 'estetik',
-      title: 'Gülüş Tasarımı',
-      description: 'Kişiye özel gülüş tasarımı ve estetik uygulamalar',
-      image: '/assets/imgs/works/2/6.jpg',
-      link: '/project-details'
-    },
-  ];
+
+  const fetchBeforeAfter = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/before-after`);
+      const data = await response.json();
+      if (data.success && data.data) {
+        setBeforeAfterCases(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching before-after cases:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (beforeAfterCases.length > 0) {
+      initIsotope();
+    }
+  }, [beforeAfterCases]);
 
   return (
     <section className="work-grid section-padding pb-0">
@@ -137,31 +116,50 @@ function Portfolio() {
           </div>
         </div>
       </div>
-      <div className="container">
-        <div className="gallery row md-marg">
-          {beforeAfterCases.map((caseItem, index) => (
-            <div key={index} className={`col-lg-4 col-md-6 items ${caseItem.category}`}>
-              <div className="item mb-50">
-                <div className="img">
-                  <img src={caseItem.image} alt={caseItem.title} />
-                </div>
-                <div className="cont d-flex align-items-end mt-30">
-                  <div>
-                    <span className="p-color mb-5 sub-title">{caseItem.category}</span>
-                    <h6>{caseItem.title}</h6>
-                    <p className="mt-10">{caseItem.description}</p>
-                  </div>
-                  <div className="ml-auto">
-                    <a href={caseItem.link}>
-                      <span className="ti-arrow-top-right"></span>
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
+      {loading ? (
+        <div className="text-center py-5">
+          <p>Yükleniyor...</p>
         </div>
-      </div>
+      ) : beforeAfterCases.length === 0 ? (
+        <div className="text-center py-5">
+          <p>Henüz öncesi-sonrası görseli bulunmamaktadır.</p>
+        </div>
+      ) : (
+        <div className="container">
+          <div className="gallery row md-marg">
+            {beforeAfterCases.map((caseItem, index) => {
+              const imageUrl = getImageUrl(caseItem.afterImage) || getImageUrl(caseItem.beforeImage) || '/placeholder.webp';
+              return (
+                <div key={caseItem.id || index} className={`col-lg-4 col-md-6 items`}>
+                  <div className="item mb-50">
+                    <div className="img">
+                      <img 
+                        src={imageUrl} 
+                        alt={caseItem.title}
+                        onError={(e) => {
+                          e.target.src = '/placeholder.webp';
+                        }}
+                      />
+                    </div>
+                    <div className="cont d-flex align-items-end mt-30">
+                      <div>
+                        <span className="p-color mb-5 sub-title">Öncesi-Sonrası</span>
+                        <h6>{caseItem.title}</h6>
+                        <p className="mt-10">{caseItem.description || ''}</p>
+                      </div>
+                      <div className="ml-auto">
+                        <a href="/oncesi-sonrasi">
+                          <span className="ti-arrow-top-right"></span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

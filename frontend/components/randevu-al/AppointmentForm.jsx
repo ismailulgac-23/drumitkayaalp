@@ -565,6 +565,55 @@ const CustomDatePicker = ({ name, value, onChange, required = false, min }) => {
 };
 
 function AppointmentForm() {
+  const [formData, setFormData] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    date: "",
+    time: "",
+    service: "",
+    doctor: "",
+    notes: "",
+  });
+
+  const [submitted, setSubmitted] = useState(false);
+  const [services, setServices] = useState([]);
+  const [doctors, setDoctors] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+  useEffect(() => {
+    fetchServices();
+    fetchDoctors();
+  }, []);
+
+  const fetchServices = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/services`);
+      const data = await response.json();
+      if (data.success) {
+        setServices(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching services:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDoctors = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/doctors`);
+      const data = await response.json();
+      if (data.success) {
+        setDoctors(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching doctors:', error);
+    }
+  };
+
   useLayoutEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -603,26 +652,23 @@ function AppointmentForm() {
       );
 
     return () => {
-      ScrollTrigger.getAll().forEach((trigger) => {
-        if (trigger.vars.trigger === document.querySelector(".contact")) {
-          trigger.kill();
-        }
-      });
+      try {
+        ScrollTrigger.getAll().forEach((trigger) => {
+          try {
+            const triggerElement = trigger.vars?.trigger;
+            const contactElement = document.querySelector(".contact");
+            if (triggerElement && contactElement && triggerElement === contactElement) {
+              trigger.kill();
+            }
+          } catch (error) {
+            // Silently handle errors during cleanup
+          }
+        });
+      } catch (error) {
+        // Silently handle errors during cleanup
+      }
     };
   }, []);
-
-  const [formData, setFormData] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    date: "",
-    time: "",
-    service: "",
-    doctor: "",
-    notes: "",
-  });
-
-  const [submitted, setSubmitted] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -632,42 +678,58 @@ function AppointmentForm() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Simulate form submission
-    setTimeout(() => {
-      setSubmitted(true);
-      setTimeout(() => {
-        setSubmitted(false);
-        setFormData({
-          name: "",
-          phone: "",
-          email: "",
-          date: "",
-          time: "",
-          service: "",
-          doctor: "",
-          notes: "",
-        });
-      }, 3000);
-    }, 500);
+
+    try {
+      // Find selected service and doctor IDs
+      const selectedService = services.find(s => s.title === formData.service);
+      const selectedDoctor = doctors.find(d => d.name === formData.doctor);
+
+      const response = await fetch(`${API_URL}/api/appointments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          phone: formData.phone,
+          email: formData.email || undefined,
+          date: formData.date,
+          time: formData.time,
+          serviceId: selectedService?.id || undefined,
+          serviceName: formData.service || undefined,
+          doctorId: selectedDoctor?.id || undefined,
+          doctorName: formData.doctor || undefined,
+          notes: formData.notes || undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSubmitted(true);
+        setTimeout(() => {
+          setSubmitted(false);
+          setFormData({
+            name: "",
+            phone: "",
+            email: "",
+            date: "",
+            time: "",
+            service: "",
+            doctor: "",
+            notes: "",
+          });
+        }, 3000);
+      } else {
+        alert(data.message || 'Randevu oluşturulurken bir hata oluştu');
+      }
+    } catch (error) {
+      console.error('Error submitting appointment:', error);
+      alert('Randevu oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.');
+    }
   };
-
-  const services = [
-    "Genel Muayene",
-    "Özel Tedavi",
-    "Konsültasyon",
-    "Kontrol Muayenesi",
-    "Acil Hizmet",
-    "Sağlık Taraması",
-  ];
-
-  const doctors = [
-    "Dr. Ahmet Yılmaz",
-    "Dr. Ayşe Demir",
-    "Dr. Mehmet Kaya",
-    "Dr. Zeynep Öz",
-  ];
 
   const timeSlots = [
     "09:00",
@@ -704,7 +766,7 @@ function AppointmentForm() {
                 </p>
               </div>
               {submitted ? (
-                <div className="text-center py-80">
+                <div className="text-center py-80" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
                   <div className="icon-img-100 mb-30">
                     <i
                       className="ti-check"
@@ -774,11 +836,11 @@ function AppointmentForm() {
                           name="service"
                           value={formData.service}
                           onChange={handleChange}
-                          placeholder="Hizmet Seçiniz *"
+                          placeholder={loading ? "Yükleniyor..." : "Hizmet Seçiniz *"}
                           required
                           options={services.map((service) => ({
-                            value: service,
-                            label: service,
+                            value: service.title,
+                            label: service.title,
                           }))}
                         />
                       </div>
@@ -822,15 +884,15 @@ function AppointmentForm() {
                           onChange={handleChange}
                           placeholder="Doktor Seçiniz (Opsiyonel)"
                           options={doctors.map((doctor) => ({
-                            value: doctor,
-                            label: doctor,
+                            value: doctor.name,
+                            label: doctor.name + (doctor.specialty ? ` - ${doctor.specialty}` : ''),
                           }))}
                         />
                       </div>
                     </div>
 
                     <div className="col-12">
-                      <div className="form-group" style={{ zIndex: 1}}>
+                      <div className="form-group" style={{ zIndex: 1 }}>
                         <textarea
                           id="form_notes"
                           name="notes"

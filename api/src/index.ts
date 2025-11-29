@@ -5,20 +5,32 @@ import dotenv from 'dotenv';
 import { errorHandler } from './middleware/errorHandler';
 import { requestLogger } from './middleware/requestLogger';
 
-// Routes
-import healthRouter from './routes/health';
+
+
+
+import appointmentsRouter from './routes/appointments';
+import patientsRouter from './routes/patients';
+import servicesRouter from './routes/services';
+import doctorsRouter from './routes/doctors';
+import testimonialsRouter from './routes/testimonials';
+import faqsRouter from './routes/faqs';
+import beforeAfterRouter from './routes/before-after';
+import dashboardRouter from './routes/dashboard';
 import authRouter from './routes/auth';
-import usersRouter from './routes/users';
-import demandsRouter from './routes/demands';
-import offersRouter from './routes/offers';
-import notificationsRouter from './routes/notifications';
-import reviewsRouter from './routes/reviews';
-import categoriesRouter from './routes/categories';
-import charityActivitiesRouter from './routes/charity_activities';
-import adminRouter from './routes/admin';
-import settingsRouter from './routes/settings';
-import adminNotificationsRouter from './routes/admin_notifications';
+import patientNotificationsRouter from './routes/patient-notifications';
+import newslettersRouter from './routes/newsletters';
+import contactChannelsRouter from './routes/contact-channels';
+import uploadRouter from './routes/upload';
+import logosRouter from './routes/logos';
+import homeIntroRouter from './routes/home-intro';
+import marqueeItemsRouter from './routes/marquee-items';
+import homeAboutRouter from './routes/home-about';
+import skillsRouter from './routes/skills';
+import marquee2ItemsRouter from './routes/marquee2-items';
+import aboutPageIntroRouter from './routes/about-page-intro';
+import contactMapRouter from './routes/contact-map';
 import { initializeFirebase } from './services/fcm.service';
+import path from 'path';
 
 
 dotenv.config();
@@ -67,19 +79,31 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(requestLogger);
 
+// Static file serving for uploads
+app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
+
 // Routes
-app.use('/health', healthRouter);
 app.use('/api/auth', authRouter);
-app.use('/api/users', usersRouter);
-app.use('/api/demands', demandsRouter);
-app.use('/api/offers', offersRouter);
-app.use('/api/notifications', notificationsRouter);
-app.use('/api/reviews', reviewsRouter);
-app.use('/api/categories', categoriesRouter);
-app.use('/api/charity-activities', charityActivitiesRouter);
-app.use('/api/admin', adminRouter);
-app.use('/api/settings', settingsRouter);
-app.use('/api/admin/notifications', adminNotificationsRouter);
+app.use('/api/appointments', appointmentsRouter);
+app.use('/api/patients', patientsRouter);
+app.use('/api/services', servicesRouter);
+app.use('/api/doctors', doctorsRouter);
+app.use('/api/testimonials', testimonialsRouter);
+app.use('/api/faqs', faqsRouter);
+app.use('/api/before-after', beforeAfterRouter);
+app.use('/api/dashboard', dashboardRouter);
+app.use('/api/patient-notifications', patientNotificationsRouter);
+app.use('/api/newsletters', newslettersRouter);
+app.use('/api/contact-channels', contactChannelsRouter);
+app.use('/api/upload', uploadRouter);
+app.use('/api/logos', logosRouter);
+app.use('/api/home-intro', homeIntroRouter);
+app.use('/api/marquee-items', marqueeItemsRouter);
+app.use('/api/home-about', homeAboutRouter);
+app.use('/api/skills', skillsRouter);
+app.use('/api/marquee2-items', marquee2ItemsRouter);
+app.use('/api/about-page-intro', aboutPageIntroRouter);
+app.use('/api/contact-map', contactMapRouter);
 
 // Initialize Firebase
 initializeFirebase();

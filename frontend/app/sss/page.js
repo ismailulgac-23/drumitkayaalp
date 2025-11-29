@@ -13,19 +13,36 @@ import Header from '@/components/page-FAQ/Header';
 import FAQS from '@/components/page-FAQ/FAQS';
 import Numbers from '@/components/page-FAQ/Numbers';
 
-export const metadata = {
-  title: 'Sıkça Sorulan Sorular - Klinik',
-  icons: {
-    icon: '/assets/imgs/favicon.ico',
-    shortcut: '/assets/imgs/favicon.ico',
-    other: generateStylesheetObject([
-      '/assets/css/plugins.css',
-      '/assets/css/style.css',
-      'https://fonts.googleapis.com/css?family=Poppins:100,200,300,400,500,600,700,800,900&display=swap',
-      'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700&display=swap',
-    ]),
-  },
-};
+export async function generateMetadata() {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  let faviconUrl = '/assets/imgs/favicon.ico';
+
+  try {
+    const response = await fetch(`${apiUrl}/api/logos/type/favicon`, {
+      next: { revalidate: 3600 }, // Cache for 1 hour
+    });
+    const data = await response.json();
+    if (data.success && data.data && data.data.url) {
+      faviconUrl = `${apiUrl}${data.data.url}`;
+    }
+  } catch (error) {
+    console.error('Error fetching favicon:', error);
+  }
+
+  return {
+    title: 'Sıkça Sorulan Sorular - Klinik',
+    icons: {
+      icon: faviconUrl,
+      shortcut: faviconUrl,
+      other: generateStylesheetObject([
+        '/assets/css/plugins.css',
+        '/assets/css/style.css',
+        'https://fonts.googleapis.com/css?family=Poppins:100,200,300,400,500,600,700,800,900&display=swap',
+        'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700&display=swap',
+      ]),
+    },
+  };
+}
 
 export default function FAQPage() {
   return (

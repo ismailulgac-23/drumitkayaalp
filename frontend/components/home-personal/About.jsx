@@ -1,11 +1,31 @@
 'use client';
-import React, { useEffect, useLayoutEffect } from 'react';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { getImageUrl } from '@/common/imageHelper';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 function About() {
+  const [about, setAbout] = useState(null);
+
+  useEffect(() => {
+    fetchAbout();
+  }, []);
+
+  const fetchAbout = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/home-about`);
+      const data = await response.json();
+      if (data.success && data.data) {
+        setAbout(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching home about:', error);
+    }
+  };
   useLayoutEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !about) return;
     
     gsap.registerPlugin(ScrollTrigger);
 
@@ -54,7 +74,14 @@ function About() {
         }
       });
     };
-  }, []);
+  }, [about]);
+
+  if (!about) {
+    return null;
+  }
+
+  const imageUrl = getImageUrl(about.image) || '/assets/imgs/header/p2.jpg';
+  const contentParts = about.content ? about.content.split('\n\n') : [];
 
   return (
     <section className="about-author section-padding">
@@ -63,7 +90,7 @@ function About() {
           <div className="col-lg-5 valign">
             <div className="profile-img">
               <div className="img">
-                <img src="/assets/imgs/header/p2.jpg" alt="Klinik Hakkında" />
+                <img src={imageUrl} alt="Klinik Hakkında" />
               </div>
               <span className="icon">
                 <img src="/assets/imgs/resume/icon1.png" alt="" />
@@ -81,26 +108,20 @@ function About() {
           </div>
           <div className="col-lg-7 valign">
             <div className="cont">
-              <h6 className="sub-title main-color mb-30">Hakkımızda</h6>
+              {about.smallTitle && (
+                <h6 className="sub-title main-color mb-30">{about.smallTitle}</h6>
+              )}
               <div className="text">
-                <h4 className="mb-30">
-                  <span className="fw-200">
-                    Modern Tıbbi Teknoloji ve Deneyimli Ekip
-                  </span>{' '}
-                  ile Sağlığınız İçin Hizmetinizdeyiz
-                </h4>
-                <p>
-                  Klinik olarak, hasta memnuniyetini ön planda tutarak, modern tıbbi teknoloji 
-                  ve deneyimli ekibimizle en kaliteli sağlık hizmetini sunmaktayız. 
-                  Yılların deneyimi ve sürekli gelişen tıp bilimi ile hastalarımıza 
-                  en iyi tedavi seçeneklerini sunuyoruz.
-                </p>
-                <p className="mt-20">
-                  Misyonumuz, her hasta için kişiselleştirilmiş tedavi planları oluşturmak 
-                  ve sağlık yolculuğunuzda yanınızda olmaktır. Vizyonumuz ise, 
-                  toplum sağlığını iyileştirmek ve herkes için erişilebilir, kaliteli 
-                  sağlık hizmeti sunmaktır.
-                </p>
+                {about.title && (
+                  <h4 className="mb-30">
+                    <span className="fw-200">{about.title}</span>
+                  </h4>
+                )}
+                {contentParts.map((part, index) => (
+                  <p key={index} className={index > 0 ? 'mt-20' : ''}>
+                    {part}
+                  </p>
+                ))}
 
                 <div className="numbers mt-50">
                   <div className="row lg-marg">

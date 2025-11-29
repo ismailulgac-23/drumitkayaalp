@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import TableContainer from "@/components/royal-common/Table";
@@ -7,60 +7,76 @@ import Button from "@/components/ui/button/Button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import ComponentCard from "@/components/common/ComponentCard";
+import axios from "@/axios";
 
 export default function FAQ() {
-    const [faqs, setFaqs] = useState([
-        {
-            id: "1",
-            question: "Randevu nasıl alabilirim?",
-            answer: "Randevu almak için web sitemizden online randevu formunu doldurabilir veya telefon ile iletişime geçebilirsiniz.",
-            order: 1,
-            isActive: true,
-        },
-        {
-            id: "2",
-            question: "Hangi ödeme yöntemlerini kabul ediyorsunuz?",
-            answer: "Nakit, kredi kartı ve banka kartı ile ödeme yapabilirsiniz.",
-            order: 2,
-            isActive: true,
-        },
-        {
-            id: "3",
-            question: "Sigorta kapsamında mı?",
-            answer: "Evet, birçok sigorta şirketi ile anlaşmamız bulunmaktadır.",
-            order: 3,
-            isActive: true,
-        },
-    ]);
+    const [faqs, setFaqs] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState({
         search: '',
     });
+
+    useEffect(() => {
+        fetchFAQs();
+    }, []);
+
+    const fetchFAQs = async () => {
+        try {
+            setLoading(true);
+            const response = await axios.get('/faqs');
+            if (response.data.success) {
+                setFaqs(response.data.data || []);
+            }
+        } catch (error) {
+            console.error('Error fetching FAQs:', error);
+            alert('SSS yüklenirken bir hata oluştu');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleDelete = async (id) => {
         if (!window.confirm('Bu soruyu silmek istediğinize emin misiniz?')) {
             return;
         }
-        setFaqs(prev => prev.filter(faq => faq.id !== id));
+        try {
+            await axios.delete(`/faqs/${id}`);
+            alert('Soru başarıyla silindi');
+            fetchFAQs();
+        } catch (error) {
+            console.error('Error deleting FAQ:', error);
+            alert('Soru silinirken bir hata oluştu');
+        }
     };
 
-    const toggleActive = (id, currentStatus) => {
-        setFaqs(prev => 
-            prev.map(faq => 
-                faq.id === id ? { ...faq, isActive: !currentStatus } : faq
-            )
-        );
+    const toggleActive = async (id, currentStatus) => {
+        try {
+            await axios.put(`/faqs/${id}`, { isActive: !currentStatus });
+            fetchFAQs();
+        } catch (error) {
+            console.error('Error toggling FAQ:', error);
+            alert('Soru durumu güncellenirken bir hata oluştu');
+        }
     };
 
     const filteredFaqs = faqs.filter(faq => {
         if (filters.search) {
             const searchLower = filters.search.toLowerCase();
             return (
-                faq.question.toLowerCase().includes(searchLower) ||
-                faq.answer.toLowerCase().includes(searchLower)
+                faq.question?.toLowerCase().includes(searchLower) ||
+                faq.answer?.toLowerCase().includes(searchLower)
             );
         }
         return true;
     });
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="text-lg">Yükleniyor...</div>
+            </div>
+        );
+    }
 
     return (
         <div>
@@ -148,4 +164,3 @@ export default function FAQ() {
         </div>
     );
 }
-

@@ -4,55 +4,56 @@ import React, { useState, useEffect } from "react";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import ComponentCard from "@/components/common/ComponentCard";
 import { Icon } from "@iconify/react";
-import { GroupIcon, BoxIconLine, ArrowUpIcon, ArrowDownIcon } from "@/icons";
+import axios from "@/axios";
 
 export default function Dashboard() {
   const [statistics, setStatistics] = useState({
-    last30DaysPatients: 145,
-    totalRevenue: 125000,
-    totalProcedures: 89,
-    todayPatients: 12,
-    todayRevenue: 8500,
-    pendingAppointments: 8,
-    completedAppointments: 67,
-    activePatients: 234,
+    last30DaysPatients: 0,
+    totalRevenue: 0,
+    totalProcedures: 0,
+    todayPatients: 0,
+    todayRevenue: 0,
+    pendingAppointments: 0,
+    completedAppointments: 0,
+    activePatients: 0,
   });
+  const [dailyPatientData, setDailyPatientData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data for chart
-  const dailyPatientData = [
-    { date: "01", count: 5 },
-    { date: "02", count: 8 },
-    { date: "03", count: 12 },
-    { date: "04", count: 6 },
-    { date: "05", count: 15 },
-    { date: "06", count: 10 },
-    { date: "07", count: 9 },
-    { date: "08", count: 11 },
-    { date: "09", count: 13 },
-    { date: "10", count: 7 },
-    { date: "11", count: 14 },
-    { date: "12", count: 16 },
-    { date: "13", count: 8 },
-    { date: "14", count: 10 },
-    { date: "15", count: 12 },
-    { date: "16", count: 9 },
-    { date: "17", count: 11 },
-    { date: "18", count: 13 },
-    { date: "19", count: 7 },
-    { date: "20", count: 15 },
-    { date: "21", count: 8 },
-    { date: "22", count: 12 },
-    { date: "23", count: 10 },
-    { date: "24", count: 14 },
-    { date: "25", count: 9 },
-    { date: "26", count: 11 },
-    { date: "27", count: 13 },
-    { date: "28", count: 7 },
-    { date: "29", count: 15 },
-    { date: "30", count: 12 },
-  ];
+  useEffect(() => {
+    fetchStatistics();
+  }, []);
 
-  const maxCount = Math.max(...dailyPatientData.map(d => d.count));
+  const fetchStatistics = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get('/dashboard/statistics');
+      if (response.data.success) {
+        setStatistics(response.data.data);
+        setDailyPatientData(response.data.data.dailyPatientData || []);
+      }
+    } catch (error) {
+      console.error('Error fetching statistics:', error);
+      alert('İstatistikler yüklenirken bir hata oluştu');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const maxCount = dailyPatientData.length > 0 
+    ? Math.max(...dailyPatientData.map(d => d.count), 1)
+    : 1;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <h1 className="text-2xl font-bold">Yükleniyor...</h1>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -127,18 +128,24 @@ export default function Dashboard() {
 
         {/* Chart Section */}
         <ComponentCard title="30 Günlük Hasta Girişi Grafiği">
-          <div className="h-64 flex items-end justify-between gap-1">
-            {dailyPatientData.map((item, index) => (
-              <div key={index} className="flex-1 flex flex-col items-center gap-2">
-                <div
-                  className="w-full bg-blue-500 rounded-t transition-all hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700"
-                  style={{ height: `${(item.count / maxCount) * 100}%` }}
-                  title={`${item.date}: ${item.count} hasta`}
-                />
-                <span className="text-xs text-gray-500 dark:text-gray-400">{item.date}</span>
-              </div>
-            ))}
-          </div>
+          {dailyPatientData.length > 0 ? (
+            <div className="h-64 flex items-end justify-between gap-1">
+              {dailyPatientData.map((item, index) => (
+                <div key={index} className="flex-1 flex flex-col items-center gap-2">
+                  <div
+                    className="w-full bg-blue-500 rounded-t transition-all hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700"
+                    style={{ height: `${(item.count / maxCount) * 100}%`, minHeight: item.count > 0 ? '4px' : '0' }}
+                    title={`${item.date}: ${item.count} hasta`}
+                  />
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{item.date}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="h-64 flex items-center justify-center text-gray-500">
+              Henüz veri bulunmamaktadır
+            </div>
+          )}
         </ComponentCard>
 
         {/* Additional Stats */}
@@ -186,4 +193,3 @@ export default function Dashboard() {
     </div>
   );
 }
-

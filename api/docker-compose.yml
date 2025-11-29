@@ -3,29 +3,29 @@ version: '3.8'
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: ihale_postgres
+    container_name: doctor_postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: ihale_db
+      POSTGRES_DB: doctor_db
     ports:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - ihale_network
+      - doctor_network
 
   adminer:
     image: adminer:latest
-    container_name: ihale_adminer
+    container_name: doctor_adminer
     restart: unless-stopped
     ports:
       - "8081:8080"
     environment:
       ADMINER_DEFAULT_SERVER: postgres
     networks:
-      - ihale_network
+      - doctor_network
     depends_on:
       - postgres
 
@@ -34,6 +34,6 @@ volumes:
     driver: local
 
 networks:
-  ihale_network:
+  doctor_network:
     driver: bridge
 
