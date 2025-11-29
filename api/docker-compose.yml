@@ -34,4 +34,3 @@ volumes:
 networks:
   doctor_network:
     driver: bridge
-
