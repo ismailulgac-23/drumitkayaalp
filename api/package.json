@@ -2,8 +2,7 @@
   "name": "ihale_api",
   "version": "1.0.0",
   "description": "İhale API - Node.js Express TypeScript",
-  "main": "index.ts",
-  "type": "commonjs",
+  "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
