@@ -88,6 +88,10 @@ const AppSidebar = () => {
               path: "/site-content/services",
             },
             {
+              name: "Blog",
+              path: "/site-content/blogs",
+            },
+            {
               name: "SSS",
               path: "/site-content/faq",
             },
