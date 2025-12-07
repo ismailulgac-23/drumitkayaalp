@@ -101,6 +101,11 @@ function Navbar() {
               </Link>
             </li>
             <li className="nav-item">
+              <Link className="nav-link" style={{ margin: 0 }} href="/blog">
+                <span className="rolling-text">BLOG</span>
+              </Link>
+            </li>
+            <li className="nav-item">
               <Link className="nav-link" style={{ margin: 0 }} href="/oncesi-sonrasi">
                 <span className="rolling-text">ÖNCESİ SONRASI</span>
               </Link>
