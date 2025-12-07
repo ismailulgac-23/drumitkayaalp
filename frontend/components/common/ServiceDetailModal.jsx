@@ -4,7 +4,6 @@ import { gsap } from 'gsap';
 import { getImageUrl } from '@/common/imageHelper';
 
 function ServiceDetailModal({ service, isOpen, onClose }) {
-  const modalRef = useRef(null);
   const overlayRef = useRef(null);
   const contentRef = useRef(null);
 
@@ -12,6 +11,8 @@ function ServiceDetailModal({ service, isOpen, onClose }) {
     if (typeof window === 'undefined') return;
 
     if (isOpen && service) {
+
+      document.querySelector('.navbar').style.zIndex = 2;
       // Prevent body scroll
       document.body.style.overflow = 'hidden';
 
@@ -25,13 +26,12 @@ function ServiceDetailModal({ service, isOpen, onClose }) {
       // Animate modal content
       gsap.fromTo(
         contentRef.current,
-        { opacity: 0, scale: 0.8, y: 50 },
+        { opacity: 0, y: 20 },
         {
           opacity: 1,
-          scale: 1,
           y: 0,
-          duration: 0.5,
-          ease: 'back.out(1.2)',
+          duration: 0.4,
+          ease: 'power2.out',
         }
       );
 
@@ -84,6 +84,7 @@ function ServiceDetailModal({ service, isOpen, onClose }) {
       }
     } else {
       document.body.style.overflow = '';
+      document.querySelector('.navbar').style.zIndex = 25;
     }
 
     return () => {
@@ -106,11 +107,6 @@ function ServiceDetailModal({ service, isOpen, onClose }) {
     }
   };
 
-  const handleOverlayClick = (e) => {
-    if (e.target === overlayRef.current) {
-      handleClose();
-    }
-  };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Escape') {
@@ -134,7 +130,6 @@ function ServiceDetailModal({ service, isOpen, onClose }) {
       <div
         ref={overlayRef}
         className="service-modal-overlay"
-        onClick={handleOverlayClick}
         style={{
           position: 'fixed',
           top: 0,
@@ -142,11 +137,8 @@ function ServiceDetailModal({ service, isOpen, onClose }) {
           right: 0,
           bottom: 0,
           backgroundColor: 'rgba(0, 0, 0, 0.85)',
-          zIndex: 9999,
+          zIndex: 99999999,
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '20px',
         }}
       >
         <div
@@ -154,14 +146,14 @@ function ServiceDetailModal({ service, isOpen, onClose }) {
           className="service-modal-content"
           style={{
             backgroundColor: '#0f0f0f',
-            borderRadius: '20px',
-            maxWidth: '900px',
-            width: '100%',
-            maxHeight: '90vh',
+            borderRadius: '0',
+            width: '100vw',
+            height: '100vh',
             overflow: 'auto',
             position: 'relative',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+            border: 'none',
+            boxShadow: 'none',
+            zIndex: 99999999,
           }}
         >
           <button
@@ -180,7 +172,7 @@ function ServiceDetailModal({ service, isOpen, onClose }) {
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              zIndex: 10,
+              zIndex: 100000000,
               transition: 'all 0.3s',
               color: '#fff',
               fontSize: '20px',
@@ -197,7 +189,13 @@ function ServiceDetailModal({ service, isOpen, onClose }) {
             <span className="ti-close"></span>
           </button>
 
-          <div style={{ padding: '40px' }}>
+          <div
+            style={{
+              padding: 'clamp(30px, 5vw, 60px)',
+              maxWidth: '1200px',
+              margin: '0 auto',
+            }}
+          >
             {service.image && (
               <div
                 className="service-modal-img"
@@ -239,79 +237,6 @@ function ServiceDetailModal({ service, isOpen, onClose }) {
               </h2>
             </div>
 
-            <div
-              style={{
-                display: 'flex',
-                gap: '20px',
-                marginBottom: '25px',
-                flexWrap: 'wrap',
-              }}
-            >
-              {service.price && (
-                <div
-                  className="service-modal-price"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
-                    padding: '15px 25px',
-                    borderRadius: '10px',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: '14px',
-                      color: 'rgba(255, 255, 255, 0.6)',
-                      display: 'block',
-                      marginBottom: '5px',
-                    }}
-                  >
-                    Fiyat
-                  </span>
-                  <span
-                    style={{
-                      fontSize: '24px',
-                      fontWeight: 600,
-                      color: '#fff',
-                    }}
-                  >
-                    {service.price.toLocaleString('tr-TR')} ₺
-                  </span>
-                </div>
-              )}
-
-              {service.duration && (
-                <div
-                  className="service-modal-duration"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
-                    padding: '15px 25px',
-                    borderRadius: '10px',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: '14px',
-                      color: 'rgba(255, 255, 255, 0.6)',
-                      display: 'block',
-                      marginBottom: '5px',
-                    }}
-                  >
-                    Süre
-                  </span>
-                  <span
-                    style={{
-                      fontSize: '24px',
-                      fontWeight: 600,
-                      color: '#fff',
-                    }}
-                  >
-                    {service.duration}
-                  </span>
-                </div>
-              )}
-            </div>
-
             <div className="service-modal-description">
               <p
                 style={{
@@ -328,7 +253,7 @@ function ServiceDetailModal({ service, isOpen, onClose }) {
             <div style={{ marginTop: '30px' }}>
               <a
                 href="/randevu-al"
-                className="butn butn-md butn-bg radius-30"
+                className="butn butn-md butn-bg radius-30 border border-white/60"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',

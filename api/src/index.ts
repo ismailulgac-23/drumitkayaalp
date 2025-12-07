@@ -29,6 +29,7 @@ import skillsRouter from './routes/skills';
 import marquee2ItemsRouter from './routes/marquee2-items';
 import aboutPageIntroRouter from './routes/about-page-intro';
 import contactMapRouter from './routes/contact-map';
+import blogsRouter from './routes/blogs';
 import { initializeFirebase } from './services/fcm.service';
 import path from 'path';
 
@@ -104,6 +105,7 @@ app.use('/api/skills', skillsRouter);
 app.use('/api/marquee2-items', marquee2ItemsRouter);
 app.use('/api/about-page-intro', aboutPageIntroRouter);
 app.use('/api/contact-map', contactMapRouter);
+app.use('/api/blogs', blogsRouter);
 
 // Initialize Firebase
 initializeFirebase();

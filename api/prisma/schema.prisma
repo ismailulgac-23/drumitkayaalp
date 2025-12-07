@@ -366,3 +366,17 @@ model ContactMap {
 
   @@index([isActive])
 }
+
+// Blog Model
+model Blog {
+  id          String   @id @default(uuid())
+  title       String
+  description String   @db.Text
+  image       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([createdAt])
+}

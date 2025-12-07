@@ -59,7 +59,7 @@ function Navbar() {
     }
   }
   return (
-    <nav className="navbar navbar-expand-lg bord blur">
+    <nav className="navbar navbar-expand-lg bord blur" style={{ zIndex: 25}}>
       <div className="container o-hidden">
         <a className="logo icon-img-100" href="/home-personal">
           <img src={headerLogo} alt="logo" onError={(e) => { e.target.src = '/assets/imgs/logo-light.png'; }} />

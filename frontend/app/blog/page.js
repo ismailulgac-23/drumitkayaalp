@@ -4,24 +4,13 @@ import ProgressScroll from '@/components/common/ProgressScroll';
 import Cursor from '@/components/common/cusor';
 import LoadingScreen from '@/components/common/loader';
 import Footer from '@/components/common/Footer';
-import Marq2 from '@/components/common/Marq2';
 import Navbar from '@/components/common/Navbar';
-import WhatsAppButton from '@/components/common/WhatsAppButton';
 import Script from 'next/script';
-import Header from '@/components/home-personal/Header';
-import Clients from '@/components/common/Clients';
-
-import Blog from '@/components/home-digital-agency/Blog';
-
-import Testimonials from '@/components/home-modern-studio/Testimonials';
-import Marq from '@/components/home-personal/Marq';
-import About from '@/components/home-personal/About';
-import Services from '@/components/home-personal/Services';
-import Skills from '@/components/home-personal/Skills';
-import Portfolio from '@/components/home-personal/Portfolio';
+import Header from '@/components/blog-classic/Header';
+import BlogsAPI from '@/components/blog-classic/BlogsAPI';
 
 export const metadata = {
-  title: 'Klinik - Modern Sağlık Hizmetleri',
+  title: 'Blog - Doktor',
   icons: {
     icon: '/assets/imgs/favicon.ico',
     shortcut: '/assets/imgs/favicon.ico',
@@ -34,30 +23,24 @@ export const metadata = {
   },
 };
 
-export default function Home() {
+export default function BlogPage() {
   return (
-    <body className="home-personal">
+    <body>
       <LoadingScreen />
       <Cursor />
       <ProgressScroll />
       <Lines />
-      <Navbar />
-      <WhatsAppButton />
       <div id="smooth-wrapper">
+        <Navbar />
         <div id="smooth-content">
-          <main className="main-bg o-hidden">
+          <main className="main-bg">
             <Header />
-            {/* <Marq /> */}
-            <About />
-            <Services />
-            <Portfolio />
-            <Skills />
-            <Testimonials />
-            <Marq2 />
+            <BlogsAPI />
           </main>
           <Footer />
         </div>
       </div>
+
       <Script
         src="/assets/js/ScrollTrigger.min.js"
         strategy="beforeInteractive"
@@ -98,9 +81,8 @@ export default function Home() {
         src="/assets/js/imgReveal/imagesloaded.pkgd.min.js"
       ></Script>
 
-      {/* <Script src="/assets/js/smoother-script.js" strategy="lazyOnload" /> */}
-
       <Script src="/assets/js/scripts.js"></Script>
     </body>
   );
 }
+
