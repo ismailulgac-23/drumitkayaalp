@@ -2,14 +2,12 @@
 import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import ServiceDetailModal from '@/components/common/ServiceDetailModal';
 import { getImageUrl } from '@/common/imageHelper';
+import Link from 'next/link';
 
 function Services() {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedService, setSelectedService] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchServices();
@@ -72,17 +70,6 @@ function Services() {
   }, [services]);
 
 
-  const handleServiceClick = (service) => {
-    setSelectedService(service);
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setTimeout(() => {
-      setSelectedService(null);
-    }, 300);
-  };
 
   return (
     <>
@@ -121,10 +108,10 @@ function Services() {
             <div className="row">
               {services.map((service, index) => (
                 <div key={service.id || index} className="col-lg-4">
-                  <div 
+                  <Link
+                    href={`/hizmetler/${service.id}`}
                     className="item sub-bg md-mb30"
-                    onClick={() => handleServiceClick(service)}
-                    style={{ cursor: 'pointer', transition: 'transform 0.3s' }}
+                    style={{ cursor: 'pointer', transition: 'transform 0.3s', display: 'block', textDecoration: 'none' }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.transform = 'translateY(-5px)';
                     }}
@@ -148,24 +135,21 @@ function Services() {
                         <span className="tag">Hizmet</span>
                       </div>
                       <p>
-                        {service.description || 'Profesyonel sağlık hizmeti'}
+                        {service.description 
+                          ? (service.description.replace(/<[^>]*>/g, '').substring(0, 100) + (service.description.replace(/<[^>]*>/g, '').length > 100 ? '...' : ''))
+                          : 'Profesyonel sağlık hizmeti'}
                       </p>
                     </div>
                     <div className="mt-40">
                       <span className="ti-arrow-top-right"></span>
                     </div>
-                  </div>
+                  </Link>
                 </div>
               ))}
             </div>
           )}
         </div>
       </section>
-      <ServiceDetailModal
-        service={selectedService}
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-      />
     </>
   );
 }

@@ -1,0 +1,105 @@
+import generateStylesheetObject from '@/common/generateStylesheetsObject';
+import Lines from '@/components/common/Lines';
+import ProgressScroll from '@/components/common/ProgressScroll';
+import Cursor from '@/components/common/cusor';
+import LoadingScreen from '@/components/common/loader';
+import Footer from '@/components/common/Footer';
+import Navbar from '@/components/common/Navbar';
+import WhatsAppButton from '@/components/common/WhatsAppButton';
+import Script from 'next/script';
+import ServiceDetail from '@/components/common/ServiceDetail';
+
+export async function generateMetadata() {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  let faviconUrl = '/assets/imgs/favicon.ico';
+
+  try {
+    const response = await fetch(`${apiUrl}/api/logos/type/favicon`, {
+      next: { revalidate: 3600 },
+    });
+    const data = await response.json();
+    if (data.success && data.data && data.data.url) {
+      faviconUrl = `${apiUrl}${data.data.url}`;
+    }
+  } catch (error) {
+    console.error('Error fetching favicon:', error);
+  }
+
+  return {
+    title: 'Hizmet Detayı - Klinik',
+    icons: {
+      icon: faviconUrl,
+      shortcut: faviconUrl,
+      other: generateStylesheetObject([
+        '/assets/css/plugins.css',
+        '/assets/css/style.css',
+        'https://fonts.googleapis.com/css?family=Poppins:100,200,300,400,500,600,700,800,900&display=swap',
+        'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700&display=swap',
+      ]),
+    },
+  };
+}
+
+export default function ServiceDetailPage() {
+  return (
+    <body>
+      <LoadingScreen />
+      <Cursor />
+      <ProgressScroll />
+      <Lines />
+      <Navbar />
+      <WhatsAppButton />
+      <div id="smooth-wrapper">
+        <div id="smooth-content">
+          <main className="main-bg o-hidden">
+            <ServiceDetail />
+          </main>
+          <Footer />
+        </div>
+      </div>
+
+      <Script
+        src="/assets/js/ScrollTrigger.min.js"
+        strategy="beforeInteractive"
+      />
+      <Script
+        src="/assets/js/ScrollSmoother.min.js"
+        strategy="beforeInteractive"
+      />
+
+      <Script strategy="beforeInteractive" src="/assets/js/plugins.js"></Script>
+      <Script
+        strategy="beforeInteractive"
+        src="/assets/js/TweenMax.min.js"
+      ></Script>
+      <Script
+        strategy="beforeInteractive"
+        src="/assets/js/charming.min.js"
+      ></Script>
+      <Script
+        strategy="beforeInteractive"
+        src="/assets/js/countdown.js"
+      ></Script>
+
+      <Script
+        strategy="beforeInteractive"
+        src="/assets/js/gsap.min.js"
+      ></Script>
+      <Script
+        strategy="beforeInteractive"
+        src="/assets/js/splitting.min.js"
+      ></Script>
+      <Script
+        strategy="beforeInteractive"
+        src="/assets/js/isotope.pkgd.min.js"
+      ></Script>
+      <Script
+        strategy="beforeInteractive"
+        src="/assets/js/imgReveal/imagesloaded.pkgd.min.js"
+      ></Script>
+
+      <Script src="/assets/js/scripts.js"></Script>
+    </body>
+  );
+}
+

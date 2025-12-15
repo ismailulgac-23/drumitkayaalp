@@ -4,11 +4,15 @@ import { useRouter, useParams } from "next/navigation";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import ComponentCard from "@/components/common/ComponentCard";
 import Button from "@/components/ui/button/Button";
+import axios from "@/axios";
+import { CKEditor } from "@ckeditor/ckeditor5-react";
+import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 
 export default function EditFAQ() {
     const router = useRouter();
     const params = useParams();
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const [formData, setFormData] = useState({
         question: "",
         answer: "",
@@ -17,24 +21,54 @@ export default function EditFAQ() {
     });
 
     useEffect(() => {
-        // Simulate fetching FAQ data
-        setFormData({
-            question: "Randevu nasıl alabilirim?",
-            answer: "Randevu almak için web sitemizden online randevu formunu doldurabilir veya telefon ile iletişime geçebilirsiniz.",
-            order: "1",
-            isActive: true,
-        });
+        fetchData();
     }, [params.id]);
+
+    const fetchData = async () => {
+        try {
+            setLoading(true);
+            const response = await axios.get(`/faqs/${params.id}`);
+            if (response.data.success) {
+                const data = response.data.data;
+                setFormData({
+                    question: data.question || "",
+                    answer: data.answer || "",
+                    order: data.order?.toString() || "0",
+                    isActive: data.isActive !== undefined ? data.isActive : true,
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching FAQ:', error);
+            alert('Veri yüklenirken bir hata oluştu');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoading(true);
+        setSaving(true);
         
-        setTimeout(() => {
-            setLoading(false);
-            alert("Soru başarıyla güncellendi!");
-            router.push("/site-content/faq");
-        }, 1000);
+        try {
+            const response = await axios.put(`/faqs/${params.id}`, {
+                question: formData.question,
+                answer: formData.answer,
+                order: formData.order || 0,
+                isActive: formData.isActive,
+            });
+
+            if (response.data.success) {
+                alert("Soru başarıyla güncellendi!");
+                router.push("/site-content/faq");
+            } else {
+                alert("Bir hata oluştu!");
+            }
+        } catch (error) {
+            console.error('Error updating FAQ:', error);
+            alert("Bir hata oluştu!");
+        } finally {
+            setSaving(false);
+        }
     };
 
     const handleChange = (e) => {
@@ -45,12 +79,21 @@ export default function EditFAQ() {
         }));
     };
 
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                    <h1 className="text-2xl font-bold">Yükleniyor...</h1>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div>
             <PageBreadcrumb 
-                pageTitle="Soru Düzenle" 
-                onSave={handleSubmit}
-                loading={loading}
+                pageTitle="Soru Düzenle"
             />
             <div className="space-y-6">
                 <ComponentCard title="SSS Bilgileri">
@@ -74,15 +117,45 @@ export default function EditFAQ() {
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Cevap <span className="text-red-500">*</span>
                             </label>
-                            <textarea
-                                name="answer"
-                                value={formData.answer}
-                                onChange={handleChange}
-                                required
-                                rows={6}
-                                className="w-full rounded-md border border-input bg-background px-3 py-2"
-                                placeholder="Cevap"
-                            />
+                            <div className="ckeditor-wrapper">
+                                <CKEditor
+                                    editor={ClassicEditor}
+                                    data={formData.answer}
+                                    onChange={(event, editor) => {
+                                        const data = editor.getData();
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            answer: data
+                                        }));
+                                    }}
+                                    config={{
+                                        toolbar: [
+                                            'heading', '|',
+                                            'bold', 'italic', 'link', '|',
+                                            'bulletedList', 'numberedList', '|',
+                                            'blockQuote', 'insertTable', '|',
+                                            'imageUpload', 'mediaEmbed', '|',
+                                            'undo', 'redo'
+                                        ],
+                                        heading: {
+                                            options: [
+                                                { model: 'paragraph', title: 'Paragraf', class: 'ck-heading_paragraph' },
+                                                { model: 'heading1', view: 'h1', title: 'Başlık 1', class: 'ck-heading_heading1' },
+                                                { model: 'heading2', view: 'h2', title: 'Başlık 2', class: 'ck-heading_heading2' },
+                                                { model: 'heading3', view: 'h3', title: 'Başlık 3', class: 'ck-heading_heading3' }
+                                            ]
+                                        }
+                                    }}
+                                />
+                            </div>
+                            <style jsx global>{`
+                                .ckeditor-wrapper .ck-editor__editable {
+                                    min-height: 300px;
+                                }
+                                .ckeditor-wrapper .ck-content {
+                                    min-height: 300px;
+                                }
+                            `}</style>
                         </div>
 
                         <div>
@@ -122,9 +195,9 @@ export default function EditFAQ() {
                             </Button>
                             <Button
                                 type="submit"
-                                disabled={loading}
+                                disabled={saving}
                             >
-                                {loading ? "Güncelleniyor..." : "Güncelle"}
+                                {saving ? "Güncelleniyor..." : "Güncelle"}
                             </Button>
                         </div>
                     </form>

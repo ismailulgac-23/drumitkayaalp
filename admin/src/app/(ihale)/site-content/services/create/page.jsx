@@ -5,6 +5,8 @@ import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import ComponentCard from "@/components/common/ComponentCard";
 import Button from "@/components/ui/button/Button";
 import axios from "@/axios";
+import { CKEditor } from "@ckeditor/ckeditor5-react";
+import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 
 export default function CreateService() {
     const router = useRouter();
@@ -32,6 +34,8 @@ export default function CreateService() {
             formDataToSend.append('duration', formData.duration || '');
             formDataToSend.append('order', formData.order || '0');
             formDataToSend.append('isActive', formData.isActive.toString());
+            
+            // CKEditor'dan gelen HTML içeriğini doğrudan gönder
             
             if (image) {
                 formDataToSend.append('services', image);
@@ -169,15 +173,138 @@ export default function CreateService() {
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Açıklama <span className="text-red-500">*</span>
                             </label>
-                            <textarea
-                                name="description"
-                                value={formData.description}
-                                onChange={handleChange}
-                                required
-                                rows={6}
-                                className="w-full rounded-md border border-input bg-background px-3 py-2"
-                                placeholder="Hizmet açıklaması"
-                            />
+                            <div className="ckeditor-wrapper">
+                                <CKEditor
+                                    editor={ClassicEditor}
+                                    data={formData.description}
+                                    onChange={(event, editor) => {
+                                        const data = editor.getData();
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            description: data
+                                        }));
+                                    }}
+                                    onReady={(editor) => {
+                                        // Custom upload adapter
+                                        editor.plugins.get('FileRepository').createUploadAdapter = (loader) => {
+                                            return {
+                                                upload: () => {
+                                                    return new Promise((resolve, reject) => {
+                                                        loader.file.then((file) => {
+                                                            const formData = new FormData();
+                                                            formData.append('image', file);
+
+                                                            axios.post('/upload/single', formData, {
+                                                                headers: {
+                                                                    'Content-Type': 'multipart/form-data',
+                                                                },
+                                                            })
+                                                            .then((response) => {
+                                                                if (response.data.success) {
+                                                                    const imageUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}${response.data.data.url}`;
+                                                                    resolve({
+                                                                        default: imageUrl
+                                                                    });
+                                                                } else {
+                                                                    reject('Resim yüklenemedi');
+                                                                }
+                                                            })
+                                                            .catch((error) => {
+                                                                console.error('Upload error:', error);
+                                                                reject('Resim yüklenirken bir hata oluştu');
+                                                            });
+                                                        });
+                                                    });
+                                                },
+                                                abort: () => {
+                                                    // Upload iptal edildiğinde
+                                                }
+                                            };
+                                        };
+                                    }}
+                                    config={{
+                                        toolbar: {
+                                            items: [
+                                                'heading',
+                                                '|',
+                                                'bold',
+                                                'italic',
+                                                'link',
+                                                '|',
+                                                'bulletedList',
+                                                'numberedList',
+                                                '|',
+                                                'blockQuote',
+                                                'insertTable',
+                                                '|',
+                                                'imageUpload',
+                                                'mediaEmbed',
+                                                '|',
+                                                'undo',
+                                                'redo'
+                                            ],
+                                            shouldNotGroupWhenFull: false
+                                        },
+                                        heading: {
+                                            options: [
+                                                { model: 'paragraph', title: 'Paragraf', class: 'ck-heading_paragraph' },
+                                                { model: 'heading1', view: 'h1', title: 'Başlık 1', class: 'ck-heading_heading1' },
+                                                { model: 'heading2', view: 'h2', title: 'Başlık 2', class: 'ck-heading_heading2' },
+                                                { model: 'heading3', view: 'h3', title: 'Başlık 3', class: 'ck-heading_heading3' },
+                                                { model: 'heading4', view: 'h4', title: 'Başlık 4', class: 'ck-heading_heading4' }
+                                            ]
+                                        }
+                                    }}
+                                />
+                            </div>
+                            <style jsx global>{`
+                                .ckeditor-wrapper .ck-editor__editable {
+                                    min-height: 300px;
+                                }
+                                .ckeditor-wrapper .ck-content {
+                                    min-height: 300px;
+                                }
+                                
+                                /* Heading Styles */
+                                .ckeditor-wrapper .ck-content h1 {
+                                    font-size: 2.5em !important;
+                                    font-weight: 700 !important;
+                                    line-height: 1.2 !important;
+                                    margin-top: 0.67em !important;
+                                    margin-bottom: 0.67em !important;
+                                }
+                                
+                                .ckeditor-wrapper .ck-content h2 {
+                                    font-size: 2em !important;
+                                    font-weight: 700 !important;
+                                    line-height: 1.3 !important;
+                                    margin-top: 0.83em !important;
+                                    margin-bottom: 0.83em !important;
+                                }
+                                
+                                .ckeditor-wrapper .ck-content h3 {
+                                    font-size: 1.75em !important;
+                                    font-weight: 600 !important;
+                                    line-height: 1.4 !important;
+                                    margin-top: 1em !important;
+                                    margin-bottom: 1em !important;
+                                }
+                                
+                                .ckeditor-wrapper .ck-content h4 {
+                                    font-size: 1.5em !important;
+                                    font-weight: 600 !important;
+                                    line-height: 1.4 !important;
+                                    margin-top: 1.17em !important;
+                                    margin-bottom: 1.17em !important;
+                                }
+                                
+                                .ckeditor-wrapper .ck-content p {
+                                    font-size: 1em !important;
+                                    line-height: 1.6 !important;
+                                    margin-top: 1em !important;
+                                    margin-bottom: 1em !important;
+                                }
+                            `}</style>
                         </div>
 
                         <div className="flex items-center">

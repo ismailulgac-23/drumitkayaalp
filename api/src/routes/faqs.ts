@@ -85,7 +85,7 @@ router.post(
         data: {
           question,
           answer,
-          order: order || 0,
+          order: order ? Number(order) : 0,
           isActive: isActive !== undefined ? (isActive === 'true' || isActive === true) : true,
         },
       });

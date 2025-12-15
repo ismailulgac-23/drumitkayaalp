@@ -94,7 +94,7 @@ router.post(
           price: price ? parseFloat(price) : null,
           duration: duration || null,
           image: imageUrl,
-          order: order || 0,
+          order: order ? Number(order) : 0,
           isActive: isActive !== undefined ? (isActive === 'true' || isActive === true) : true,
         },
       });

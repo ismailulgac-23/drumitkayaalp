@@ -178,9 +178,10 @@ function FAQS() {
                         <span className="ico ti-plus"></span>
                       </div>
                       <div className="accordion-info" style={{ maxHeight: '0px', overflow: 'hidden' }}>
-                        <p className="">
-                          {faq.answer}
-                        </p>
+                        <div 
+                          className="faq-answer"
+                          dangerouslySetInnerHTML={{ __html: faq.answer }}
+                        />
                       </div>
                     </div>
                   ))}

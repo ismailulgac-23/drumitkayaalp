@@ -104,7 +104,7 @@ export default function Services() {
                     </div>
                     <TableContainer
                         data={filteredServices}
-                        navItems={["Görsel", "Hizmet Adı", "Açıklama", "Fiyat", "Süre", "Durum", "İşlemler"]}
+                        navItems={["Görsel", "Hizmet Adı", "Fiyat", "Süre", "Durum", "İşlemler"]}
                         renderItem={(service) => (
                             <TableRow key={service.id}>
                                 <TableCell className="px-5 py-4 sm:px-6 text-start">
@@ -121,9 +121,6 @@ export default function Services() {
                                 </TableCell>
                                 <TableCell className="px-5 py-4 sm:px-6 text-start font-medium">
                                     {service.title}
-                                </TableCell>
-                                <TableCell className="px-5 py-4 sm:px-6 text-start">
-                                    {service.description || "-"}
                                 </TableCell>
                                 <TableCell className="px-5 py-4 sm:px-6 text-start font-semibold">
                                     {service.price ? `₺${service.price.toLocaleString('tr-TR')}` : "-"}

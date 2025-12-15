@@ -2,14 +2,12 @@
 import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import ServiceDetailModal from '@/components/common/ServiceDetailModal';
 import { getImageUrl } from '@/common/imageHelper';
+import Link from 'next/link';
 
 function Services() {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedService, setSelectedService] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchServices();
@@ -159,17 +157,6 @@ function Services() {
     return title;
   };
 
-  const handleServiceClick = (service) => {
-    setSelectedService(service);
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setTimeout(() => {
-      setSelectedService(null);
-    }, 300);
-  };
 
   return (
     <>
@@ -196,11 +183,11 @@ function Services() {
             </div>
           ) : (
             services.map((service, index) => (
-              <div
+              <Link
                 key={service.id || index}
+                href={`/hizmetler/${service.id}`}
                 className={`item ${index === services.length - 1 ? 'pb-0' : ''}`}
-                onClick={() => handleServiceClick(service)}
-                style={{ cursor: 'pointer', transition: 'opacity 0.3s' }}
+                style={{ cursor: 'pointer', transition: 'opacity 0.3s', display: 'block', textDecoration: 'none' }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.opacity = '0.9';
                 }}
@@ -225,8 +212,9 @@ function Services() {
                   <div className="col-lg-4">
                     <div className="text md-mb80">
                       <p>
-                        {service.description ||
-                          'Profesyonel sağlık hizmeti sunuyoruz.'}
+                        {service.description 
+                          ? (service.description.replace(/<[^>]*>/g, '').substring(0, 150) + (service.description.replace(/<[^>]*>/g, '').length > 150 ? '...' : ''))
+                          : 'Profesyonel sağlık hizmeti sunuyoruz.'}
                       </p>
                     </div>
                   </div>
@@ -245,16 +233,11 @@ function Services() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))
           )}
         </div>
       </section>
-      <ServiceDetailModal
-        service={selectedService}
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-      />
     </>
   );
 }
