@@ -92,18 +92,6 @@ function About() {
               <div className="img">
                 <img src={imageUrl} alt="Klinik Hakkında" />
               </div>
-              <span className="icon">
-                <img src="/assets/imgs/resume/icon1.png" alt="" />
-              </span>
-              <span className="icon">
-                <img src="/assets/imgs/resume/icon2.png" alt="" />
-              </span>
-              <span className="icon">
-                <img src="/assets/imgs/resume/icon3.png" alt="" />
-              </span>
-              <span className="icon">
-                <img src="/assets/imgs/resume/icon4.png" alt="" />
-              </span>
             </div>
           </div>
           <div className="col-lg-7 valign">

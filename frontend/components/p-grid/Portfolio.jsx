@@ -90,29 +90,10 @@ function Portfolio() {
               <h3>Öncesi - Sonrası Galerisi</h3>
             </div>
           </div>
-          <div className="filtering col-lg-8 d-flex justify-content-end align-items-end">
-            <div>
-              <div className="filter">
-                <span data-filter="*" className="active" data-count="06">
-                  Tümü
-                </span>
-                <span data-filter=".temizlik" data-count="01">
-                  Temizlik
-                </span>
-                <span data-filter=".estetik" data-count="02">
-                  Estetik
-                </span>
-                <span data-filter=".tedavi" data-count="01">
-                  Tedavi
-                </span>
-                <span data-filter=".ortodonti" data-count="01">
-                  Ortodonti
-                </span>
-                <span data-filter=".implant" data-count="01">
-                  İmplant
-                </span>
-              </div>
-            </div>
+          <div className="col-lg-8 d-flex align-items-end">
+            <p className="opacity-7 fz-16" style={{lineHeight:"1.8"}}>
+              Öncesi sonrası sonuçlarımız, uygulanan medikal estetik işlemlerin doğal, dengeli ve etkili dönüşümünü açıkça gösterir. Her hasta için kişiye özel planlanır.
+            </p>
           </div>
         </div>
       </div>
